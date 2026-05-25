@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(py -c ' *)",
+      "PowerShell($len = \\(Get-Item \"C:\\\\Users\\\\Steff\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Steff-PycharmProjects-Poke-Fisi-final\\\\9e78d17e-09a8-4ef7-b7f3-75bfd5f15d48\\\\tasks\\\\bgrvsvc95.output\"\\).Length; \"GA test bytes: $len\"; $len2 = \\(Get-Item \"C:\\\\Users\\\\Steff\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Steff-PycharmProjects-Poke-Fisi-final\\\\9e78d17e-09a8-4ef7-b7f3-75bfd5f15d48\\\\tasks\\\\biry214em.output\"\\).Length; \"Minimax test bytes: $len2\")",
+      "Bash(py -c \"from src.ai_agent import MinimaxAgent; print\\(MinimaxAgent\\(\\).pesos\\)\")",
+      "Bash(py -u run_ga.py)",
+      "PowerShell(\"---\")"
+    ]
+  }
+}

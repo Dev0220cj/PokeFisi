@@ -1,0 +1,189 @@
+{
+  "moves_pool": {
+    "Llamarada": {"tipo": "Fuego", "categoria": "Especial", "poder": 110, "precision": 85, "pp": 5, "efecto": null},
+    "Lanzallamas": {"tipo": "Fuego", "categoria": "Especial", "poder": 90, "precision": 100, "pp": 15, "efecto": {"tipo": "quemar", "probabilidad": 0.10}},
+    "Colmillo_Igneo": {"tipo": "Fuego", "categoria": "Fisico", "poder": 65, "precision": 95, "pp": 15, "efecto": {"tipo": "quemar", "probabilidad": 0.10}},
+    "Ascuas": {"tipo": "Fuego", "categoria": "Especial", "poder": 40, "precision": 100, "pp": 25, "efecto": null},
+    "Hidrobomba": {"tipo": "Agua", "categoria": "Especial", "poder": 110, "precision": 80, "pp": 5, "efecto": null},
+    "Surf": {"tipo": "Agua", "categoria": "Especial", "poder": 90, "precision": 100, "pp": 15, "efecto": null},
+    "Pistola_Agua": {"tipo": "Agua", "categoria": "Especial", "poder": 40, "precision": 100, "pp": 25, "efecto": null},
+    "Acua_Jet": {"tipo": "Agua", "categoria": "Fisico", "poder": 40, "precision": 100, "pp": 20, "efecto": null},
+    "Rayo_Solar": {"tipo": "Planta", "categoria": "Especial", "poder": 120, "precision": 100, "pp": 10, "efecto": null},
+    "Hoja_Aguda": {"tipo": "Planta", "categoria": "Fisico", "poder": 55, "precision": 95, "pp": 25, "efecto": null},
+    "Latigo_Cepa": {"tipo": "Planta", "categoria": "Fisico", "poder": 45, "precision": 100, "pp": 25, "efecto": null},
+    "Tormenta_Floral": {"tipo": "Planta", "categoria": "Especial", "poder": 110, "precision": 70, "pp": 5, "efecto": null},
+    "Rayo": {"tipo": "Electrico", "categoria": "Especial", "poder": 90, "precision": 100, "pp": 15, "efecto": {"tipo": "paralizar", "probabilidad": 0.10}},
+    "Trueno": {"tipo": "Electrico", "categoria": "Especial", "poder": 110, "precision": 70, "pp": 10, "efecto": {"tipo": "paralizar", "probabilidad": 0.30}},
+    "Chispa": {"tipo": "Electrico", "categoria": "Fisico", "poder": 65, "precision": 100, "pp": 20, "efecto": {"tipo": "paralizar", "probabilidad": 0.30}},
+    "Bola_Sombra": {"tipo": "Fantasma", "categoria": "Especial", "poder": 80, "precision": 100, "pp": 15, "efecto": {"tipo": "bajar_spdef", "probabilidad": 0.20}},
+    "Lenguetazo": {"tipo": "Fantasma", "categoria": "Fisico", "poder": 30, "precision": 100, "pp": 30, "efecto": null},
+    "Psiquico": {"tipo": "Psiquico", "categoria": "Especial", "poder": 90, "precision": 100, "pp": 10, "efecto": {"tipo": "bajar_spdef", "probabilidad": 0.10}},
+    "Psicocarga": {"tipo": "Psiquico", "categoria": "Especial", "poder": 120, "precision": 100, "pp": 5, "efecto": null},
+    "Terremoto": {"tipo": "Tierra", "categoria": "Fisico", "poder": 100, "precision": 100, "pp": 10, "efecto": null},
+    "Excavar": {"tipo": "Tierra", "categoria": "Fisico", "poder": 80, "precision": 100, "pp": 10, "efecto": null},
+    "Pedrada": {"tipo": "Roca", "categoria": "Fisico", "poder": 50, "precision": 90, "pp": 15, "efecto": null},
+    "Avalancha": {"tipo": "Roca", "categoria": "Fisico", "poder": 75, "precision": 90, "pp": 10, "efecto": null},
+    "Alud": {"tipo": "Hielo", "categoria": "Especial", "poder": 110, "precision": 70, "pp": 5, "efecto": {"tipo": "congelar", "probabilidad": 0.10}},
+    "Ventisca": {"tipo": "Hielo", "categoria": "Especial", "poder": 90, "precision": 100, "pp": 10, "efecto": {"tipo": "congelar", "probabilidad": 0.10}},
+    "A_Bocajarro": {"tipo": "Lucha", "categoria": "Fisico", "poder": 120, "precision": 100, "pp": 5, "efecto": null},
+    "Puno_Dinamico": {"tipo": "Lucha", "categoria": "Fisico", "poder": 100, "precision": 50, "pp": 5, "efecto": {"tipo": "confundir", "probabilidad": 1.0}},
+    "Tajo_Umbrio": {"tipo": "Siniestro", "categoria": "Fisico", "poder": 70, "precision": 100, "pp": 15, "efecto": null},
+    "Pulso_Umbrio": {"tipo": "Siniestro", "categoria": "Especial", "poder": 80, "precision": 100, "pp": 15, "efecto": null},
+    "Garra_Dragon": {"tipo": "Dragon", "categoria": "Fisico", "poder": 80, "precision": 100, "pp": 15, "efecto": null},
+    "Cometa_Draco": {"tipo": "Dragon", "categoria": "Especial", "poder": 130, "precision": 90, "pp": 5, "efecto": null},
+    "Cabezazo_Zen": {"tipo": "Psiquico", "categoria": "Fisico", "poder": 80, "precision": 90, "pp": 15, "efecto": null},
+    "Acero_Ala": {"tipo": "Acero", "categoria": "Fisico", "poder": 70, "precision": 90, "pp": 25, "efecto": null},
+    "Garra_Metal": {"tipo": "Acero", "categoria": "Fisico", "poder": 50, "precision": 95, "pp": 35, "efecto": null},
+    "Toxico": {"tipo": "Veneno", "categoria": "Estado", "poder": 0, "precision": 90, "pp": 10, "efecto": {"tipo": "envenenar_grave", "probabilidad": 1.0}},
+    "Paralizador": {"tipo": "Electrico", "categoria": "Estado", "poder": 0, "precision": 90, "pp": 20, "efecto": {"tipo": "paralizar", "probabilidad": 1.0}},
+    "Hipnosis": {"tipo": "Psiquico", "categoria": "Estado", "poder": 0, "precision": 60, "pp": 20, "efecto": {"tipo": "dormir", "probabilidad": 1.0}},
+    "Drenadoras": {"tipo": "Planta", "categoria": "Estado", "poder": 0, "precision": 90, "pp": 10, "efecto": {"tipo": "drenar_hp", "probabilidad": 1.0}},
+    "Maldicion": {"tipo": "Fantasma", "categoria": "Estado", "poder": 0, "precision": 100, "pp": 10, "efecto": {"tipo": "drenar_hp_rival", "probabilidad": 1.0}},
+    "Proteccion": {"tipo": "Normal", "categoria": "Estado", "poder": 0, "precision": 100, "pp": 10, "efecto": {"tipo": "proteger", "probabilidad": 1.0}},
+    "Danza_Espada": {"tipo": "Normal", "categoria": "Estado", "poder": 0, "precision": 100, "pp": 20, "efecto": {"tipo": "subir_atk", "probabilidad": 1.0}},
+    "Agilidad": {"tipo": "Psiquico", "categoria": "Estado", "poder": 0, "precision": 100, "pp": 30, "efecto": {"tipo": "subir_vel", "probabilidad": 1.0}},
+    "Amnesia": {"tipo": "Psiquico", "categoria": "Estado", "poder": 0, "precision": 100, "pp": 20, "efecto": {"tipo": "subir_spatk", "probabilidad": 1.0}}
+  },
+  "pokemon": {
+    "Charizard": {
+      "tipo": ["Fuego", "Volador"], "hp": 78, "ataque": 84, "defensa": 78, "sp_atk": 109, "sp_def": 85, "velocidad": 100,
+      "movimientos": ["Llamarada", "Lanzallamas", "Garra_Dragon", "Acero_Ala", "Colmillo_Igneo", "Ascuas", "Agilidad", "Proteccion"]
+    },
+    "Arcanine": {
+      "tipo": ["Fuego"], "hp": 90, "ataque": 110, "defensa": 80, "sp_atk": 100, "sp_def": 80, "velocidad": 95,
+      "movimientos": ["Lanzallamas", "Colmillo_Igneo", "Terremoto", "Tajo_Umbrio", "Llamarada", "Ascuas", "Danza_Espada", "Proteccion"]
+    },
+    "Typhlosion": {
+      "tipo": ["Fuego"], "hp": 78, "ataque": 84, "defensa": 78, "sp_atk": 109, "sp_def": 85, "velocidad": 100,
+      "movimientos": ["Llamarada", "Lanzallamas", "Ascuas", "Tormenta_Floral", "Psiquico", "Agilidad", "Proteccion", "Toxico"]
+    },
+    "Houndoom": {
+      "tipo": ["Fuego", "Siniestro"], "hp": 75, "ataque": 90, "defensa": 50, "sp_atk": 110, "sp_def": 80, "velocidad": 95,
+      "movimientos": ["Llamarada", "Lanzallamas", "Pulso_Umbrio", "Tajo_Umbrio", "Toxico", "Hipnosis", "Proteccion", "Amnesia"]
+    },
+    "Blastoise": {
+      "tipo": ["Agua"], "hp": 79, "ataque": 83, "defensa": 100, "sp_atk": 85, "sp_def": 105, "velocidad": 78,
+      "movimientos": ["Hidrobomba", "Surf", "Pistola_Agua", "Terremoto", "Toxico", "Proteccion", "Amnesia", "Acua_Jet"]
+    },
+    "Gyarados": {
+      "tipo": ["Agua", "Volador"], "hp": 95, "ataque": 125, "defensa": 79, "sp_atk": 60, "sp_def": 100, "velocidad": 81,
+      "movimientos": ["Hidrobomba", "Acua_Jet", "Terremoto", "Tajo_Umbrio", "Avalancha", "Danza_Espada", "Proteccion", "Maldicion"]
+    },
+    "Starmie": {
+      "tipo": ["Agua", "Psiquico"], "hp": 60, "ataque": 75, "defensa": 85, "sp_atk": 100, "sp_def": 85, "velocidad": 115,
+      "movimientos": ["Hidrobomba", "Surf", "Psiquico", "Psicocarga", "Rayo", "Hipnosis", "Proteccion", "Agilidad"]
+    },
+    "Milotic": {
+      "tipo": ["Agua"], "hp": 95, "ataque": 60, "defensa": 79, "sp_atk": 100, "sp_def": 125, "velocidad": 81,
+      "movimientos": ["Surf", "Hidrobomba", "Pistola_Agua", "Ventisca", "Toxico", "Proteccion", "Amnesia", "Drenadoras"]
+    },
+    "Venusaur": {
+      "tipo": ["Planta", "Veneno"], "hp": 80, "ataque": 82, "defensa": 83, "sp_atk": 100, "sp_def": 100, "velocidad": 80,
+      "movimientos": ["Rayo_Solar", "Tormenta_Floral", "Hoja_Aguda", "Toxico", "Drenadoras", "Proteccion", "Amnesia", "Latigo_Cepa"]
+    },
+    "Sceptile": {
+      "tipo": ["Planta"], "hp": 70, "ataque": 85, "defensa": 65, "sp_atk": 105, "sp_def": 85, "velocidad": 120,
+      "movimientos": ["Rayo_Solar", "Hoja_Aguda", "Tormenta_Floral", "Latigo_Cepa", "Agilidad", "Toxico", "Proteccion", "Drenadoras"]
+    },
+    "Roserade": {
+      "tipo": ["Planta", "Veneno"], "hp": 60, "ataque": 70, "defensa": 65, "sp_atk": 125, "sp_def": 105, "velocidad": 90,
+      "movimientos": ["Tormenta_Floral", "Rayo_Solar", "Toxico", "Drenadoras", "Hoja_Aguda", "Hipnosis", "Proteccion", "Amnesia"]
+    },
+    "Raichu": {
+      "tipo": ["Electrico"], "hp": 60, "ataque": 90, "defensa": 55, "sp_atk": 90, "sp_def": 80, "velocidad": 110,
+      "movimientos": ["Rayo", "Trueno", "Chispa", "Acua_Jet", "Paralizador", "Agilidad", "Proteccion", "Bola_Sombra"]
+    },
+    "Ampharos": {
+      "tipo": ["Electrico"], "hp": 90, "ataque": 75, "defensa": 85, "sp_atk": 115, "sp_def": 90, "velocidad": 55,
+      "movimientos": ["Trueno", "Rayo", "Paralizador", "Chispa", "Psiquico", "Proteccion", "Amnesia", "Bola_Sombra"]
+    },
+    "Electivire": {
+      "tipo": ["Electrico"], "hp": 75, "ataque": 123, "defensa": 67, "sp_atk": 95, "sp_def": 85, "velocidad": 95,
+      "movimientos": ["Chispa", "Trueno", "Terremoto", "Puno_Dinamico", "Rayo", "Danza_Espada", "Proteccion", "Paralizador"]
+    },
+    "Alakazam": {
+      "tipo": ["Psiquico"], "hp": 55, "ataque": 50, "defensa": 45, "sp_atk": 135, "sp_def": 95, "velocidad": 120,
+      "movimientos": ["Psicocarga", "Psiquico", "Bola_Sombra", "Hipnosis", "Agilidad", "Proteccion", "Amnesia", "Cabezazo_Zen"]
+    },
+    "Gardevoir": {
+      "tipo": ["Psiquico", "Hada"], "hp": 68, "ataque": 65, "defensa": 65, "sp_atk": 125, "sp_def": 115, "velocidad": 80,
+      "movimientos": ["Psicocarga", "Psiquico", "Bola_Sombra", "Hipnosis", "Toxico", "Proteccion", "Amnesia", "Cabezazo_Zen"]
+    },
+    "Espeon": {
+      "tipo": ["Psiquico"], "hp": 65, "ataque": 65, "defensa": 60, "sp_atk": 130, "sp_def": 95, "velocidad": 110,
+      "movimientos": ["Psicocarga", "Psiquico", "Bola_Sombra", "Agilidad", "Hipnosis", "Proteccion", "Amnesia", "Cabezazo_Zen"]
+    },
+    "Gengar": {
+      "tipo": ["Fantasma", "Veneno"], "hp": 60, "ataque": 65, "defensa": 60, "sp_atk": 130, "sp_def": 75, "velocidad": 110,
+      "movimientos": ["Bola_Sombra", "Lenguetazo", "Psiquico", "Toxico", "Hipnosis", "Maldicion", "Proteccion", "Amnesia"]
+    },
+    "Mismagius": {
+      "tipo": ["Fantasma"], "hp": 60, "ataque": 60, "defensa": 60, "sp_atk": 105, "sp_def": 105, "velocidad": 105,
+      "movimientos": ["Bola_Sombra", "Lenguetazo", "Psiquico", "Hipnosis", "Toxico", "Maldicion", "Proteccion", "Amnesia"]
+    },
+    "Garchomp": {
+      "tipo": ["Dragon", "Tierra"], "hp": 108, "ataque": 130, "defensa": 95, "sp_atk": 80, "sp_def": 85, "velocidad": 102,
+      "movimientos": ["Garra_Dragon", "Terremoto", "Excavar", "Tajo_Umbrio", "Avalancha", "Danza_Espada", "Proteccion", "Cometa_Draco"]
+    },
+    "Dragonite": {
+      "tipo": ["Dragon", "Volador"], "hp": 91, "ataque": 134, "defensa": 95, "sp_atk": 100, "sp_def": 100, "velocidad": 80,
+      "movimientos": ["Garra_Dragon", "Cometa_Draco", "Terremoto", "Acero_Ala", "Trueno", "Danza_Espada", "Proteccion", "Agilidad"]
+    },
+    "Tyranitar": {
+      "tipo": ["Roca", "Siniestro"], "hp": 100, "ataque": 134, "defensa": 110, "sp_atk": 95, "sp_def": 100, "velocidad": 61,
+      "movimientos": ["Avalancha", "Pedrada", "Terremoto", "Tajo_Umbrio", "Pulso_Umbrio", "Danza_Espada", "Proteccion", "Maldicion"]
+    },
+    "Rhydon": {
+      "tipo": ["Tierra", "Roca"], "hp": 105, "ataque": 130, "defensa": 120, "sp_atk": 45, "sp_def": 45, "velocidad": 40,
+      "movimientos": ["Terremoto", "Excavar", "Avalancha", "Pedrada", "Terremoto", "Danza_Espada", "Proteccion", "Maldicion"]
+    },
+    "Mamoswine": {
+      "tipo": ["Hielo", "Tierra"], "hp": 110, "ataque": 130, "defensa": 80, "sp_atk": 70, "sp_def": 60, "velocidad": 80,
+      "movimientos": ["Alud", "Ventisca", "Terremoto", "Excavar", "Avalancha", "Danza_Espada", "Proteccion", "Maldicion"]
+    },
+    "Machamp": {
+      "tipo": ["Lucha"], "hp": 90, "ataque": 130, "defensa": 80, "sp_atk": 65, "sp_def": 85, "velocidad": 55,
+      "movimientos": ["A_Bocajarro", "Puno_Dinamico", "Terremoto", "Pedrada", "Tajo_Umbrio", "Danza_Espada", "Proteccion", "Maldicion"]
+    },
+    "Lucario": {
+      "tipo": ["Lucha", "Acero"], "hp": 70, "ataque": 110, "defensa": 70, "sp_atk": 115, "sp_def": 70, "velocidad": 90,
+      "movimientos": ["A_Bocajarro", "Puno_Dinamico", "Bola_Sombra", "Psiquico", "Garra_Metal", "Danza_Espada", "Proteccion", "Agilidad"]
+    },
+    "Scizor": {
+      "tipo": ["Bicho", "Acero"], "hp": 70, "ataque": 130, "defensa": 100, "sp_atk": 55, "sp_def": 80, "velocidad": 65,
+      "movimientos": ["Garra_Metal", "Acero_Ala", "A_Bocajarro", "Tajo_Umbrio", "Acua_Jet", "Danza_Espada", "Proteccion", "Agilidad"]
+    },
+    "Metagross": {
+      "tipo": ["Acero", "Psiquico"], "hp": 80, "ataque": 135, "defensa": 130, "sp_atk": 95, "sp_def": 90, "velocidad": 70,
+      "movimientos": ["Garra_Metal", "Cabezazo_Zen", "Terremoto", "Acero_Ala", "Psiquico", "Danza_Espada", "Proteccion", "Amnesia"]
+    },
+    "Weavile": {
+      "tipo": ["Siniestro", "Hielo"], "hp": 70, "ataque": 120, "defensa": 65, "sp_atk": 45, "sp_def": 85, "velocidad": 125,
+      "movimientos": ["Tajo_Umbrio", "Pulso_Umbrio", "Ventisca", "Alud", "Garra_Metal", "Danza_Espada", "Proteccion", "Agilidad"]
+    },
+    "Togekiss": {
+      "tipo": ["Hada", "Volador"], "hp": 85, "ataque": 50, "defensa": 95, "sp_atk": 120, "sp_def": 115, "velocidad": 80,
+      "movimientos": ["Psiquico", "Bola_Sombra", "Acero_Ala", "Agilidad", "Hipnosis", "Toxico", "Proteccion", "Amnesia"]
+    }
+  },
+  "tipo_efectividad": {
+    "Fuego":     {"Planta": 2.0, "Hielo": 2.0, "Bicho": 2.0, "Acero": 2.0, "Agua": 0.5, "Roca": 0.5, "Dragon": 0.5, "Fuego": 0.5},
+    "Agua":      {"Fuego": 2.0, "Tierra": 2.0, "Roca": 2.0, "Planta": 0.5, "Dragon": 0.5, "Agua": 0.5},
+    "Planta":    {"Agua": 2.0, "Tierra": 2.0, "Roca": 2.0, "Fuego": 0.5, "Planta": 0.5, "Veneno": 0.5, "Volador": 0.5, "Bicho": 0.5, "Dragon": 0.5, "Acero": 0.5},
+    "Electrico": {"Agua": 2.0, "Volador": 2.0, "Planta": 0.5, "Electrico": 0.5, "Dragon": 0.5, "Tierra": 0.0},
+    "Psiquico":  {"Lucha": 2.0, "Veneno": 2.0, "Psiquico": 0.5, "Acero": 0.5, "Siniestro": 0.0},
+    "Fantasma":  {"Psiquico": 2.0, "Fantasma": 2.0, "Normal": 0.0, "Siniestro": 0.0},
+    "Dragon":    {"Dragon": 2.0, "Acero": 0.5, "Hada": 0.0},
+    "Siniestro": {"Psiquico": 2.0, "Fantasma": 2.0, "Lucha": 0.5, "Siniestro": 0.5, "Hada": 0.5},
+    "Acero":     {"Hielo": 2.0, "Roca": 2.0, "Hada": 2.0, "Fuego": 0.5, "Agua": 0.5, "Electrico": 0.5, "Acero": 0.5},
+    "Lucha":     {"Normal": 2.0, "Hielo": 2.0, "Roca": 2.0, "Siniestro": 2.0, "Acero": 2.0, "Veneno": 0.5, "Bicho": 0.5, "Psiquico": 0.5, "Volador": 0.5, "Hada": 0.5, "Fantasma": 0.0},
+    "Tierra":    {"Fuego": 2.0, "Electrico": 2.0, "Veneno": 2.0, "Roca": 2.0, "Acero": 2.0, "Planta": 0.5, "Bicho": 0.5, "Volador": 0.0},
+    "Roca":      {"Fuego": 2.0, "Hielo": 2.0, "Volador": 2.0, "Bicho": 2.0, "Lucha": 0.5, "Tierra": 0.5, "Acero": 0.5},
+    "Hielo":     {"Planta": 2.0, "Tierra": 2.0, "Volador": 2.0, "Dragon": 2.0, "Fuego": 0.5, "Agua": 0.5, "Hielo": 0.5, "Acero": 0.5},
+    "Veneno":    {"Planta": 2.0, "Hada": 2.0, "Veneno": 0.5, "Tierra": 0.5, "Roca": 0.5, "Fantasma": 0.5, "Acero": 0.0},
+    "Volador":   {"Planta": 2.0, "Lucha": 2.0, "Bicho": 2.0, "Electrico": 0.5, "Roca": 0.5, "Acero": 0.5},
+    "Bicho":     {"Planta": 2.0, "Psiquico": 2.0, "Siniestro": 2.0, "Fuego": 0.5, "Lucha": 0.5, "Volador": 0.5, "Fantasma": 0.5, "Acero": 0.5, "Hada": 0.5},
+    "Hada":      {"Lucha": 2.0, "Dragon": 2.0, "Siniestro": 2.0, "Fuego": 0.5, "Veneno": 0.5, "Acero": 0.5},
+    "Normal":    {"Roca": 0.5, "Acero": 0.5, "Fantasma": 0.0}
+  }
+}
