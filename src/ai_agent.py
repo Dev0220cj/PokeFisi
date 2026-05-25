@@ -221,16 +221,25 @@ class MinimaxAgent:
     def _rollout_promedio(self, engine, accion_j, accion_ia, profundidad, alpha, beta, n_samples):
         """Ejecuta `n_samples` rollouts del par de acciones y devuelve la evaluación promedio.
         En la raíz se usa n_samples=self.n_samples para suavizar la decisión final;
-        en niveles profundos n_samples=1 (rollout único) para no multiplicar el costo."""
+        en niveles profundos n_samples=1 (rollout único) para no multiplicar el costo.
+
+        Optimización: si después del rollout estamos en leaf (profundidad=0 o batalla
+        terminada), evaluamos directo en vez de llamar a minimax(profundidad=0) que
+        haría exactamente eso con una llamada de función extra."""
         if n_samples == 1:
             engine_clon = engine.clonar()
             engine_clon.ejecutar_turno(accion_j, accion_ia)
+            if profundidad == 0 or engine_clon.batalla_terminada():
+                return self.evaluar(engine_clon)
             return self.minimax(engine_clon, profundidad, alpha, beta)
         suma = 0.0
         for _ in range(n_samples):
             engine_clon = engine.clonar()
             engine_clon.ejecutar_turno(accion_j, accion_ia)
-            suma += self.minimax(engine_clon, profundidad, alpha, beta)
+            if profundidad == 0 or engine_clon.batalla_terminada():
+                suma += self.evaluar(engine_clon)
+            else:
+                suma += self.minimax(engine_clon, profundidad, alpha, beta)
         return suma / n_samples
 
     def evaluar(self, engine):

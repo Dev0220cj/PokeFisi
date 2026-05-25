@@ -326,7 +326,8 @@ class GeneticOptimizer:
                 })
 
                 if callback:
-                    callback(gen, self.mejor_fitness, media, self.mejor_individuo)
+                    callback(gen, self.mejor_fitness, fitnesses[mejor_idx], media,
+                             self.mejor_individuo, list(poblacion[mejor_idx]))
 
                 # ── Construir nueva generación ──────────────────────────────
                 # Escenarios nuevos (renueva la presión selectiva entre generaciones)

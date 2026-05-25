@@ -65,13 +65,33 @@ def validar(pesos, n_holdout=50, seed_holdout=999999, tam_equipo=4):
 def _hacer_callback(t_inicio, optimizer=None, checkpoint_path=None):
     """Callback que imprime progreso Y opcionalmente guarda checkpoint cada gen.
     El checkpoint permite recuperar los mejores pesos hallados aunque el
-    entrenamiento se interrumpa (timeout, crash, etc.)."""
-    def callback(gen, mejor_fitness, media, mejor_individuo):
+    entrenamiento se interrumpa (timeout, crash, etc.).
+
+    Muestra:
+    - hist: mejor fitness HISTÓRICO (acumulado desde Gen 1)
+    - gen:  mejor fitness DE ESTA GENERACIÓN (puede ser distinto al histórico)
+    Si los pesos del mejor histórico coinciden con el mejor de la gen → "(elite)"
+    Si no → "(challenger)" y muestra ambos sets de pesos para ver la dirección
+    de exploración de la población.
+    """
+    def callback(gen, mejor_fitness, mejor_gen_fitness, media,
+                 mejor_individuo, mejor_gen_individuo):
         elapsed = time.time() - t_inicio
-        pesos_str = '[' + ', '.join(f'{w:.3f}' for w in mejor_individuo) + ']'
-        print(f"  Gen {gen+1:3d}  |  mejor histórico {mejor_fitness*100:5.1f}%  "
-              f"|  media gen {media*100:5.1f}%  |  {elapsed/60:5.1f} min", flush=True)
-        print(f"           {pesos_str}", flush=True)
+
+        pesos_iguales = mejor_individuo == mejor_gen_individuo
+        label = "(elite)" if pesos_iguales else "(challenger)"
+
+        print(f"  Gen {gen+1:3d}  |  hist {mejor_fitness*100:5.1f}%  "
+              f"gen {mejor_gen_fitness*100:5.1f}% {label}  "
+              f"media {media*100:5.1f}%  |  {elapsed/60:5.1f} min", flush=True)
+
+        hist_str = '[' + ', '.join(f'{w:.3f}' for w in mejor_individuo) + ']'
+        if pesos_iguales:
+            print(f"           {hist_str}", flush=True)
+        else:
+            gen_str = '[' + ', '.join(f'{w:.3f}' for w in mejor_gen_individuo) + ']'
+            print(f"           hist: {hist_str}", flush=True)
+            print(f"           gen:  {gen_str}", flush=True)
 
         # ── Checkpoint: persistir progreso después de cada generación ──
         if optimizer is not None and checkpoint_path is not None:

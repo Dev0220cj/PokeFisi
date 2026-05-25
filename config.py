@@ -21,7 +21,9 @@ COLOR_BLACK = (0, 0, 0)
 BATTLE_TEAM_SIZE = 4
 MINIMAX_DEPTH = 2
 MINIMAX_SAMPLES = 3            # rollouts por par (accion_ia, accion_j) en la RAÍZ del árbol
-MINIMAX_SAMPLES_DEEP = 2       # rollouts por par en niveles profundos (compromiso ruido/velocidad)
+MINIMAX_SAMPLES_DEEP = 1       # rollouts en niveles profundos (1 con CRN: las iteraciones
+                               # consecutivas no son independientes — consumen dados sucesivos
+                               # del mismo stream seedado, así que promediarlas no reduce ruido real)
 GENETIC_POPULATION = 20
 GENETIC_GENERATIONS = 50
 GENETIC_BATTLES_PER_EVAL = 15  # batallas por individuo (más = menos ruido en el fitness)
