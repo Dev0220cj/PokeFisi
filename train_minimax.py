@@ -114,11 +114,16 @@ def main():
         }
         nombre_cfg = "RÁPIDO"
     else:
+        # Basket simplificado: solo vs Heurístico (rival más informativo).
+        # Quitamos Minimax-vs-Minimax del fitness porque cada batalla cuesta ~2x
+        # y aporta menos señal — el Heurístico ya es buena vara de medir.
+        # Compensamos subiendo n_batallas_heur de 30 → 40 (más señal por individuo).
+        # Holdout sigue evaluando vs los 3 rivales (Random, Heurístico, Minimax).
         config = {
             'poblacion_size': 20,
-            'generaciones': 30,
-            'n_batallas_heur': 30,
-            'n_batallas_mini': 10,
+            'generaciones': 20,        # antes 30 (rendimientos decrecientes)
+            'n_batallas_heur': 40,     # antes 30 (más señal)
+            'n_batallas_mini': 0,      # antes 10 (quitado del basket)
             'n_holdout': 50,
         }
         nombre_cfg = "PESADO"
@@ -132,8 +137,10 @@ def main():
     print(f"  Configuración:")
     print(f"    Población:        {config['poblacion_size']}")
     print(f"    Generaciones:     {config['generaciones']}")
-    print(f"    Basket por ind.:  {config['n_batallas_heur']} vs Heurístico + "
-          f"{config['n_batallas_mini']} vs Minimax-manual")
+    basket_str = f"{config['n_batallas_heur']} vs Heurístico"
+    if config['n_batallas_mini'] > 0:
+        basket_str += f" + {config['n_batallas_mini']} vs Minimax-manual"
+    print(f"    Basket por ind.:  {basket_str}")
     print(f"    Tamaño equipos:   {args.tam} vs {args.tam}")
     print(f"    Semilla inicial:  PESOS_EVAL_UNIFORME (con perturbación σ=0.05)")
     print(f"    Anclas inmortales: 2 (anti-regresión)")
