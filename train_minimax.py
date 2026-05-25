@@ -62,13 +62,27 @@ def validar(pesos, n_holdout=50, seed_holdout=999999, tam_equipo=4):
 
 # ── Callback de progreso ────────────────────────────────────────────────────
 
-def _hacer_callback(t_inicio):
+def _hacer_callback(t_inicio, optimizer=None, checkpoint_path=None):
+    """Callback que imprime progreso Y opcionalmente guarda checkpoint cada gen.
+    El checkpoint permite recuperar los mejores pesos hallados aunque el
+    entrenamiento se interrumpa (timeout, crash, etc.)."""
     def callback(gen, mejor_fitness, media, mejor_individuo):
         elapsed = time.time() - t_inicio
         pesos_str = '[' + ', '.join(f'{w:.3f}' for w in mejor_individuo) + ']'
         print(f"  Gen {gen+1:3d}  |  mejor histórico {mejor_fitness*100:5.1f}%  "
-              f"|  media gen {media*100:5.1f}%  |  {elapsed/60:5.1f} min")
-        print(f"           {pesos_str}")
+              f"|  media gen {media*100:5.1f}%  |  {elapsed/60:5.1f} min", flush=True)
+        print(f"           {pesos_str}", flush=True)
+
+        # ── Checkpoint: persistir progreso después de cada generación ──
+        if optimizer is not None and checkpoint_path is not None:
+            try:
+                optimizer.guardar_pesos(checkpoint_path, metadatos_extra={
+                    'estado': 'en_progreso',
+                    'gen_actual': gen + 1,
+                    'tiempo_transcurrido_min': round(elapsed / 60, 2),
+                })
+            except Exception as e:
+                print(f"  ⚠️  Error al guardar checkpoint: {e}", flush=True)
     return callback
 
 
@@ -156,7 +170,9 @@ def main():
         master_seed=args.seed,
     )
 
-    mejor_pesos = optimizer.evolucionar(callback=_hacer_callback(t_inicio))
+    mejor_pesos = optimizer.evolucionar(
+        callback=_hacer_callback(t_inicio, optimizer=optimizer, checkpoint_path=args.out)
+    )
     t_entrenamiento = time.time() - t_inicio
 
     print()
