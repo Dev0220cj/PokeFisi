@@ -67,26 +67,39 @@ def _hacer_callback(t_inicio, optimizer=None, checkpoint_path=None):
     El checkpoint permite recuperar los mejores pesos hallados aunque el
     entrenamiento se interrumpa (timeout, crash, etc.).
 
-    Muestra:
+    Display:
     - hist: mejor fitness HISTÓRICO (acumulado desde Gen 1)
-    - gen:  mejor fitness DE ESTA GENERACIÓN (puede ser distinto al histórico)
-    Si los pesos del mejor histórico coinciden con el mejor de la gen → "(elite)"
-    Si no → "(challenger)" y muestra ambos sets de pesos para ver la dirección
-    de exploración de la población.
+    - gen:  mejor fitness DE ESTA GENERACIÓN
+    - label distingue 3 situaciones:
+        (elite)         → mismo campeón que la gen anterior, sin cambios
+        (nuevo récord)  → un individuo NUEVO acaba de superar al histórico
+        (challenger)    → el mejor de la gen NO es el histórico (alguien intentó pero
+                          no logró superarlo) — muestra ambos pesos para ver exploración
     """
+    # Estado de closure para detectar cambios entre generaciones
+    prev_hist_pesos = [None]
+
     def callback(gen, mejor_fitness, mejor_gen_fitness, media,
                  mejor_individuo, mejor_gen_individuo):
         elapsed = time.time() - t_inicio
 
-        pesos_iguales = mejor_individuo == mejor_gen_individuo
-        label = "(elite)" if pesos_iguales else "(challenger)"
+        gen_es_hist = (mejor_individuo == mejor_gen_individuo)
+        hist_cambio_pesos = (prev_hist_pesos[0] is not None and
+                             mejor_individuo != prev_hist_pesos[0])
+
+        if gen_es_hist:
+            label = "(nuevo récord)" if hist_cambio_pesos else "(elite)"
+        else:
+            label = "(challenger)"
+
+        prev_hist_pesos[0] = list(mejor_individuo)
 
         print(f"  Gen {gen+1:3d}  |  hist {mejor_fitness*100:5.1f}%  "
               f"gen {mejor_gen_fitness*100:5.1f}% {label}  "
               f"media {media*100:5.1f}%  |  {elapsed/60:5.1f} min", flush=True)
 
         hist_str = '[' + ', '.join(f'{w:.3f}' for w in mejor_individuo) + ']'
-        if pesos_iguales:
+        if gen_es_hist:
             print(f"           {hist_str}", flush=True)
         else:
             gen_str = '[' + ', '.join(f'{w:.3f}' for w in mejor_gen_individuo) + ']'
