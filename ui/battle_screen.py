@@ -169,6 +169,23 @@ class BattleScreen:
         """Libera la animación de HP del lado rival."""
         self._hp_snapshot_ia = {}
 
+    def hp_animacion_pendiente(self, pokemon, lado):
+        """Devuelve True si la barra de HP del Pokémon `pokemon` (activo de `lado`)
+        aún está animando hacia su HP real. Usado por main.py para evitar avanzar
+        diálogos o mostrar el banner de victoria mientras una animación está en curso."""
+        anim_dict = self._hp_anim_j if lado == 'jugador' else self._hp_anim_i
+        snapshot  = self._hp_snapshot_j if lado == 'jugador' else self._hp_snapshot_ia
+        nombre = pokemon.nombre
+        # Si está congelado (snapshot activo), la animación está "esperando"
+        # — no pendiente todavía, no bloquea
+        if nombre in snapshot:
+            return False
+        if nombre not in anim_dict:
+            return False
+        displayed, _ = anim_dict[nombre]
+        # Tolerancia de 0.5 HP para evitar bloqueo por error de coma flotante
+        return displayed > pokemon.hp + 0.5
+
     def _color_hp(self, ratio):
         if ratio > 0.5:
             return COLOR_HP_HIGH

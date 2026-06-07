@@ -5,7 +5,9 @@ Uso:
     py train_minimax.py                  # entrenamiento completo (~3-5 h con paralelismo)
     py train_minimax.py --rapido         # configuración rápida para iterar (~30 min)
     py train_minimax.py --sin-paralelo   # serial (debug)
+    py train_minimax.py --workers 4      # limitar a 4 cores (deja CPU libre para uso)
     py train_minimax.py --seed 42        # reproducible
+    py train_minimax.py --resume         # reanudar desde checkpoint anterior
 
 Estrategia:
 - Población sembrada alrededor de PESOS_EVAL_UNIFORME (no aleatoria).
@@ -62,10 +64,12 @@ def validar(pesos, n_holdout=50, seed_holdout=999999, tam_equipo=4):
 
 # ── Callback de progreso ────────────────────────────────────────────────────
 
-def _hacer_callback(t_inicio, optimizer=None, checkpoint_path=None):
-    """Callback que imprime progreso Y opcionalmente guarda checkpoint cada gen.
-    El checkpoint permite recuperar los mejores pesos hallados aunque el
-    entrenamiento se interrumpa (timeout, crash, etc.).
+def _hacer_callback(t_inicio_sesion, t_acumulado_previo=0):
+    """Callback que imprime progreso al inicio de cada generación.
+
+    El checkpoint completo (incluye población + RNG state para resume) lo
+    persiste `GeneticOptimizer.evolucionar` directamente — el callback solo
+    se ocupa del display.
 
     Display:
     - hist: mejor fitness HISTÓRICO (acumulado desde Gen 1)
@@ -81,7 +85,7 @@ def _hacer_callback(t_inicio, optimizer=None, checkpoint_path=None):
 
     def callback(gen, mejor_fitness, mejor_gen_fitness, media,
                  mejor_individuo, mejor_gen_individuo):
-        elapsed = time.time() - t_inicio
+        elapsed = t_acumulado_previo + (time.time() - t_inicio_sesion)
 
         gen_es_hist = (mejor_individuo == mejor_gen_individuo)
         hist_cambio_pesos = (prev_hist_pesos[0] is not None and
@@ -105,17 +109,6 @@ def _hacer_callback(t_inicio, optimizer=None, checkpoint_path=None):
             gen_str = '[' + ', '.join(f'{w:.3f}' for w in mejor_gen_individuo) + ']'
             print(f"           hist: {hist_str}", flush=True)
             print(f"           gen:  {gen_str}", flush=True)
-
-        # ── Checkpoint: persistir progreso después de cada generación ──
-        if optimizer is not None and checkpoint_path is not None:
-            try:
-                optimizer.guardar_pesos(checkpoint_path, metadatos_extra={
-                    'estado': 'en_progreso',
-                    'gen_actual': gen + 1,
-                    'tiempo_transcurrido_min': round(elapsed / 60, 2),
-                })
-            except Exception as e:
-                print(f"  ⚠️  Error al guardar checkpoint: {e}", flush=True)
     return callback
 
 
@@ -128,12 +121,28 @@ def main():
                         help='Configuración rápida (~30 min) para iterar')
     parser.add_argument('--sin-paralelo', action='store_true',
                         help='Desactivar paralelismo (debug)')
+    parser.add_argument('--workers', type=int, default=None,
+                        help='Número de procesos paralelos (default: todos los cores). '
+                             'Usar menos para dejar CPU libre para otro trabajo.')
     parser.add_argument('--seed', type=int, default=None,
                         help='Master seed para reproducibilidad completa')
     parser.add_argument('--tam', type=int, default=4, choices=[3, 4],
                         help='Tamaño de equipo (default: 4)')
+    parser.add_argument('--generaciones', type=int, default=None,
+                        help='Sobreescribir número de generaciones. '
+                             'Combinable con --resume para extender un run previo.')
     parser.add_argument('--out', type=str, default=RUTA_PESOS_ENTRENADOS,
-                        help='Ruta del JSON de salida')
+                        help='Ruta del JSON de salida (y checkpoint para --resume)')
+    parser.add_argument('--resume', action='store_true',
+                        help='Reanudar entrenamiento desde el checkpoint en --out. '
+                             'Si no hay checkpoint o ya está completado, falla.')
+    parser.add_argument('--semilla-file', type=str, default=None,
+                        help='JSON con pesos previos para usar como semilla inicial '
+                             '(útil para fine-tuning alrededor de un run anterior). '
+                             'Reemplaza PESOS_EVAL_UNIFORME como centro de la población.')
+    parser.add_argument('--sigma', type=float, default=None,
+                        help='Desviación gaussiana al perturbar la semilla (default: 0.05). '
+                             'Usar valores pequeños (0.02-0.03) para fine-tuning fino.')
     args = parser.parse_args()
 
     # ── Hiperparámetros ─────────────────────────────────────────────────────
@@ -148,18 +157,34 @@ def main():
         nombre_cfg = "RÁPIDO"
     else:
         # Basket simplificado: solo vs Heurístico (rival más informativo).
-        # Quitamos Minimax-vs-Minimax del fitness porque cada batalla cuesta ~2x
-        # y aporta menos señal — el Heurístico ya es buena vara de medir.
-        # Compensamos subiendo n_batallas_heur de 30 → 40 (más señal por individuo).
-        # Holdout sigue evaluando vs los 3 rivales (Random, Heurístico, Minimax).
+        # Basket mixto: 60 vs Heurístico + 20 vs Minimax-manual.
+        # Heurístico solo daba fitness 65-95% para casi cualquier individuo →
+        # señal demasiado ruidosa y baja diferenciación.
+        # Minimax-manual (win rate real ~35-50%) discrimina mucho mejor entre
+        # pesos buenos y muy buenos. 80 batallas totales reduce la varianza al
+        # punto donde el GA tiene señal real para seleccionar.
         config = {
             'poblacion_size': 20,
-            'generaciones': 20,        # antes 30 (rendimientos decrecientes)
-            'n_batallas_heur': 40,     # antes 30 (más señal)
-            'n_batallas_mini': 0,      # antes 10 (quitado del basket)
+            'generaciones': 40,
+            'n_batallas_heur': 60,
+            'n_batallas_mini': 20,
             'n_holdout': 50,
         }
         nombre_cfg = "PESADO"
+
+    # Override de generaciones desde CLI (útil para extender runs con --resume)
+    if args.generaciones is not None:
+        config['generaciones'] = args.generaciones
+
+    # ── Workers ─────────────────────────────────────────────────────────────
+    import multiprocessing as _mp
+    cores_total = _mp.cpu_count()
+    if args.sin_paralelo:
+        workers_str = "OFF"
+    elif args.workers is not None:
+        workers_str = f"{args.workers} / {cores_total} cores"
+    else:
+        workers_str = f"{cores_total} / {cores_total} cores (todos)"
 
     # ── Banner ──────────────────────────────────────────────────────────────
     print()
@@ -175,45 +200,96 @@ def main():
         basket_str += f" + {config['n_batallas_mini']} vs Minimax-manual"
     print(f"    Basket por ind.:  {basket_str}")
     print(f"    Tamaño equipos:   {args.tam} vs {args.tam}")
-    print(f"    Semilla inicial:  PESOS_EVAL_UNIFORME (con perturbación σ=0.05)")
+    semilla_label = args.semilla_file if args.semilla_file else "PESOS_EVAL_UNIFORME"
+    sigma_label = args.sigma if args.sigma is not None else 0.05
+    print(f"    Semilla inicial:  {semilla_label} (σ={sigma_label})")
     print(f"    Anclas inmortales: 2 (anti-regresión)")
-    print(f"    Paralelismo:      {'OFF' if args.sin_paralelo else 'ON (auto)'}")
+    print(f"    Workers:          {workers_str}")
     if args.seed is not None:
         print(f"    Master seed:      {args.seed} (reproducible)")
+    if args.resume:
+        print(f"    Modo:             RESUME desde {args.out}")
     print()
 
     # Estimación grosera de tiempo
     total_batallas = (config['poblacion_size'] *
                       (config['n_batallas_heur'] + config['n_batallas_mini']) *
                       config['generaciones'])
-    t_serial_est = total_batallas * 2.0 / 60  # ~2s/batalla, en minutos
-    speedup_est = 1 if args.sin_paralelo else 4
+    t_serial_est = total_batallas * 0.5 / 60  # ~0.5s/batalla Minimax-vs-Heurístico (post opt.)
+    if args.sin_paralelo:
+        speedup_est = 1
+    else:
+        speedup_est = max(1, args.workers if args.workers is not None else cores_total)
+        # Speedup real es sublineal; descontamos overhead aproximado
+        speedup_est = speedup_est * 0.75
     t_paralelo_est = t_serial_est / speedup_est
     print(f"  Estimación: {total_batallas:,} batallas totales")
-    print(f"  Tiempo estimado: ~{t_paralelo_est:.0f} min (paralelo ~4x speedup)")
+    print(f"  Tiempo estimado: ~{t_paralelo_est:.0f} min (paralelo ~{speedup_est:.1f}x speedup)")
     print()
 
-    # ── Entrenamiento ───────────────────────────────────────────────────────
-    print("  ── Entrenando ─────────────────────────────────────────────────")
-    t_inicio = time.time()
+    # ── Semilla inicial ──────────────────────────────────────────────────────
+    import json as _json
+    semilla_inicial = PESOS_EVAL_UNIFORME
+    if args.semilla_file is not None:
+        try:
+            with open(args.semilla_file, 'r', encoding='utf-8') as _f:
+                semilla_inicial = _json.load(_f)['pesos']
+            print(f"  Semilla cargada desde: {args.semilla_file}")
+            print(f"  Pesos semilla: {[f'{w:.4f}' for w in semilla_inicial]}")
+            print()
+        except Exception as _e:
+            print(f"  ⚠️  No se pudo cargar semilla desde {args.semilla_file}: {_e}")
+            print(f"     Usando PESOS_EVAL_UNIFORME como fallback.")
+            print()
 
+    sigma = args.sigma if args.sigma is not None else 0.05
+
+    # ── Optimizer ───────────────────────────────────────────────────────────
     optimizer = GeneticOptimizer(
         poblacion_size=config['poblacion_size'],
         generaciones=config['generaciones'],
         n_batallas_heur=config['n_batallas_heur'],
         n_batallas_mini=config['n_batallas_mini'],
-        semilla=PESOS_EVAL_UNIFORME,
-        sigma_semilla=0.05,
+        semilla=semilla_inicial,
+        sigma_semilla=sigma,
         n_anclas=2,
         tam_equipo=args.tam,
         usar_paralelismo=not args.sin_paralelo,
+        n_workers=args.workers,
         master_seed=args.seed,
     )
 
+    # ── Resume desde checkpoint ─────────────────────────────────────────────
+    estado_inicial = None
+    if args.resume:
+        estado_inicial = optimizer.cargar_estado_completo(args.out)
+        if estado_inicial is None:
+            print(f"  ⚠️  No se pudo reanudar desde {args.out}")
+            print(f"     (archivo inexistente, ya completado, o sin estado evolutivo)")
+            sys.exit(1)
+        gen_completada = estado_inicial['gen_completada']
+        restantes = config['generaciones'] - (gen_completada + 1)
+        if restantes <= 0:
+            print(f"  ✓ Checkpoint en {args.out} ya tiene todas las generaciones.")
+            print(f"     Eliminá el archivo o aumentá --generaciones para entrenar más.")
+            sys.exit(0)
+        print(f"  ✓ Reanudando desde gen {gen_completada + 1}/{config['generaciones']} "
+              f"({restantes} gens restantes, tiempo previo: "
+              f"{estado_inicial['t_acumulado']/60:.1f} min)")
+        print(f"  ✓ Mejor histórico: {optimizer.mejor_fitness*100:.1f}%")
+        print()
+
+    # ── Entrenamiento ───────────────────────────────────────────────────────
+    print("  ── Entrenando ─────────────────────────────────────────────────")
+    t_inicio = time.time()
+    t_acumulado_previo = estado_inicial['t_acumulado'] if estado_inicial else 0
+
     mejor_pesos = optimizer.evolucionar(
-        callback=_hacer_callback(t_inicio, optimizer=optimizer, checkpoint_path=args.out)
+        callback=_hacer_callback(t_inicio, t_acumulado_previo=t_acumulado_previo),
+        checkpoint_path=args.out,
+        estado_inicial=estado_inicial,
     )
-    t_entrenamiento = time.time() - t_inicio
+    t_entrenamiento = time.time() - t_inicio + t_acumulado_previo
 
     print()
     print(f"  Entrenamiento completado en {t_entrenamiento/60:.1f} min")
@@ -244,7 +320,10 @@ def main():
     print(f"    Diferencia GA vs Manual: {delta_man:+.1f} pp")
 
     # ── Persistencia ────────────────────────────────────────────────────────
+    # Guardamos el JSON final con la validación, marcando estado='completado'
+    # para que un --resume futuro sobre este archivo no intente continuar.
     optimizer.guardar_pesos(args.out, metadatos_extra={
+        'estado': 'completado',
         'validacion_holdout': {
             'ga':       val_ga,
             'uniforme': val_uni,
@@ -261,5 +340,8 @@ def main():
 
 if __name__ == '__main__':
     # IMPORTANTE: este guard es OBLIGATORIO en Windows para multiprocessing
-    mp_freeze_support_safe = True
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\n\n  [Entrenamiento interrumpido. El checkpoint de la última generación "
+              "completada está guardado — podés reanudar con --resume]\n", flush=True)

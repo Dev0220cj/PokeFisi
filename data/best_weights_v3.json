@@ -1,0 +1,294 @@
+{
+  "pesos": [
+    0.38660133032758354,
+    0.3060677204215437,
+    0.058236711119107325,
+    0.01768912980826734,
+    0.07927905849784278,
+    0.036541926349940496,
+    0.11558412347571484
+  ],
+  "fitness": 0.95,
+  "historial": [
+    {
+      "gen": 0,
+      "mejor": 0.8625,
+      "mejor_gen": 0.8625,
+      "media": 0.8168749999999999
+    },
+    {
+      "gen": 1,
+      "mejor": 0.8625,
+      "mejor_gen": 0.8625,
+      "media": 0.81875
+    },
+    {
+      "gen": 2,
+      "mejor": 0.8625,
+      "mejor_gen": 0.85,
+      "media": 0.7993750000000001
+    },
+    {
+      "gen": 3,
+      "mejor": 0.8625,
+      "mejor_gen": 0.8375,
+      "media": 0.779375
+    },
+    {
+      "gen": 4,
+      "mejor": 0.8625,
+      "mejor_gen": 0.8125,
+      "media": 0.7693749999999999
+    },
+    {
+      "gen": 5,
+      "mejor": 0.8625,
+      "mejor_gen": 0.8375,
+      "media": 0.748125
+    },
+    {
+      "gen": 6,
+      "mejor": 0.8625,
+      "mejor_gen": 0.85,
+      "media": 0.8018750000000001
+    },
+    {
+      "gen": 7,
+      "mejor": 0.875,
+      "mejor_gen": 0.875,
+      "media": 0.803125
+    },
+    {
+      "gen": 8,
+      "mejor": 0.925,
+      "mejor_gen": 0.925,
+      "media": 0.8775000000000001
+    },
+    {
+      "gen": 9,
+      "mejor": 0.925,
+      "mejor_gen": 0.9,
+      "media": 0.8237500000000001
+    },
+    {
+      "gen": 10,
+      "mejor": 0.925,
+      "mejor_gen": 0.7875,
+      "media": 0.74375
+    },
+    {
+      "gen": 11,
+      "mejor": 0.95,
+      "mejor_gen": 0.95,
+      "media": 0.8375
+    },
+    {
+      "gen": 12,
+      "mejor": 0.95,
+      "mejor_gen": 0.9,
+      "media": 0.8487500000000001
+    },
+    {
+      "gen": 13,
+      "mejor": 0.95,
+      "mejor_gen": 0.9125,
+      "media": 0.875625
+    },
+    {
+      "gen": 14,
+      "mejor": 0.95,
+      "mejor_gen": 0.8875,
+      "media": 0.82
+    },
+    {
+      "gen": 15,
+      "mejor": 0.95,
+      "mejor_gen": 0.8625,
+      "media": 0.79875
+    },
+    {
+      "gen": 16,
+      "mejor": 0.95,
+      "mejor_gen": 0.9375,
+      "media": 0.85875
+    },
+    {
+      "gen": 17,
+      "mejor": 0.95,
+      "mejor_gen": 0.8125,
+      "media": 0.776875
+    },
+    {
+      "gen": 18,
+      "mejor": 0.95,
+      "mejor_gen": 0.8875,
+      "media": 0.82125
+    },
+    {
+      "gen": 19,
+      "mejor": 0.95,
+      "mejor_gen": 0.8875,
+      "media": 0.829375
+    },
+    {
+      "gen": 20,
+      "mejor": 0.95,
+      "mejor_gen": 0.8375,
+      "media": 0.7875
+    },
+    {
+      "gen": 21,
+      "mejor": 0.95,
+      "mejor_gen": 0.875,
+      "media": 0.80375
+    },
+    {
+      "gen": 22,
+      "mejor": 0.95,
+      "mejor_gen": 0.8375,
+      "media": 0.783125
+    },
+    {
+      "gen": 23,
+      "mejor": 0.95,
+      "mejor_gen": 0.8625,
+      "media": 0.8099999999999999
+    },
+    {
+      "gen": 24,
+      "mejor": 0.95,
+      "mejor_gen": 0.925,
+      "media": 0.8574999999999999
+    },
+    {
+      "gen": 25,
+      "mejor": 0.95,
+      "mejor_gen": 0.85,
+      "media": 0.79875
+    },
+    {
+      "gen": 26,
+      "mejor": 0.95,
+      "mejor_gen": 0.9125,
+      "media": 0.8318749999999999
+    },
+    {
+      "gen": 27,
+      "mejor": 0.95,
+      "mejor_gen": 0.925,
+      "media": 0.8637499999999999
+    },
+    {
+      "gen": 28,
+      "mejor": 0.95,
+      "mejor_gen": 0.8625,
+      "media": 0.8006249999999999
+    },
+    {
+      "gen": 29,
+      "mejor": 0.95,
+      "mejor_gen": 0.8875,
+      "media": 0.8162499999999999
+    },
+    {
+      "gen": 30,
+      "mejor": 0.95,
+      "mejor_gen": 0.85,
+      "media": 0.8150000000000001
+    },
+    {
+      "gen": 31,
+      "mejor": 0.95,
+      "mejor_gen": 0.85,
+      "media": 0.791875
+    },
+    {
+      "gen": 32,
+      "mejor": 0.95,
+      "mejor_gen": 0.875,
+      "media": 0.7875
+    },
+    {
+      "gen": 33,
+      "mejor": 0.95,
+      "mejor_gen": 0.85,
+      "media": 0.8150000000000001
+    },
+    {
+      "gen": 34,
+      "mejor": 0.95,
+      "mejor_gen": 0.9,
+      "media": 0.8306250000000001
+    },
+    {
+      "gen": 35,
+      "mejor": 0.95,
+      "mejor_gen": 0.875,
+      "media": 0.8256249999999999
+    },
+    {
+      "gen": 36,
+      "mejor": 0.95,
+      "mejor_gen": 0.8625,
+      "media": 0.804375
+    },
+    {
+      "gen": 37,
+      "mejor": 0.95,
+      "mejor_gen": 0.925,
+      "media": 0.8400000000000001
+    },
+    {
+      "gen": 38,
+      "mejor": 0.95,
+      "mejor_gen": 0.875,
+      "media": 0.8262499999999999
+    },
+    {
+      "gen": 39,
+      "mejor": 0.95,
+      "mejor_gen": 0.875,
+      "media": 0.8099999999999999
+    }
+  ],
+  "fecha": "2026-05-26T20:31:18",
+  "hiperparametros": {
+    "poblacion_size": 20,
+    "generaciones": 40,
+    "n_batallas_heur": 60,
+    "n_batallas_mini": 20,
+    "sigma_semilla": 0.02,
+    "n_anclas": 2,
+    "tam_equipo": 4,
+    "master_seed": 123,
+    "semilla": [
+      0.3019893682267705,
+      0.252066714424393,
+      0.05421797980207968,
+      0.038542342234985136,
+      0.10849686180763476,
+      0.06886165584033065,
+      0.17582507766380626
+    ]
+  },
+  "estado": "completado",
+  "validacion_holdout": {
+    "ga": {
+      "random": 0.92,
+      "heuristic": 0.74,
+      "minimax_default": 0.49
+    },
+    "uniforme": {
+      "random": 0.89,
+      "heuristic": 0.67,
+      "minimax_default": 0.36
+    },
+    "manual": {
+      "random": 0.95,
+      "heuristic": 0.82,
+      "minimax_default": 0.47
+    },
+    "n_holdout": 50
+  },
+  "tiempo_entrenamiento_min": 134.51
+}

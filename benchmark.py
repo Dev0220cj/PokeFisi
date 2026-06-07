@@ -19,7 +19,7 @@ import time
 sys.stdout.reconfigure(encoding='utf-8')
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from src.pokemon import lista_nombres_pokemon, cargar_pokemon
+from src.pokemon import lista_nombres_pokemon, cargar_pokemon, aplicar_modo_movimientos
 from src.battle_engine import BattleEngine
 from src.ai_agent import (
     RandomAgent, HeuristicAgent, MinimaxAgent,
@@ -40,6 +40,11 @@ def _jugar_batalla(agente_j, agente_ia, nombres_pool, tam=4, max_turnos=150):
     random.shuffle(nombres_pool)
     equipo_j  = [cargar_pokemon(n) for n in nombres_pool[:tam]]
     equipo_ia = [cargar_pokemon(n) for n in nombres_pool[tam:tam * 2]]
+
+    # Reducir 8 → 4 movs (matching entrenamiento y deployment del juego).
+    for pkm in equipo_j + equipo_ia:
+        aplicar_modo_movimientos(pkm, 'aleatorios')
+
     engine = BattleEngine(equipo_j, equipo_ia)
 
     for _ in range(max_turnos):
@@ -117,7 +122,14 @@ def _benchmark_par(etiqueta, fab_a, fab_b, n_batallas, tam, nombres_pool):
 
 # ── Punto de entrada ─────────────────────────────────────────────────────────
 
-BAR_W = 24   # ancho de la barra de victorias
+NAME_W = 24  # ancho de la columna de nombres (acomoda "Nv.3  Minimax (uniforme)")
+BAR_W  = 24  # ancho de la barra de victorias
+
+# Ancho interno del box (entre los ║):
+#   3 (indent)  +  NAME_W  +  2  +  BAR_W  +  2  +  6 (pct)  +  2
+#                                                  + 15 ("(NNN victorias)") + 2
+W = 3 + NAME_W + 2 + BAR_W + 2 + 6 + 2 + 15 + 2  # = 80
+
 
 def _win_bar(pct):
     """Barra horizontal proporcional al porcentaje."""
@@ -180,19 +192,24 @@ def main():
 
     nombres_pool = lista_nombres_pokemon()
 
-    # W = 3 (indent) + 16 (nombre) + 2 + BAR_W + 2 + 6 (pct) + 2 + 15 (wins) + 2 = 48 + BAR_W
-    W = 48 + BAR_W
+    blank = f'  ║{"":<{W}}║'
+
+    # ── Header ──────────────────────────────────────────────────────────────
     print()
     print(f'  ╔{"═" * W}╗')
     print(f'  ║{"POKEFISI  —  Benchmark de Agentes IA":^{W}}║')
     print(f'  ╠{"═" * W}╣')
-    print(f'  ║  {f"{n} batallas por enfrentamiento   |   equipos {tam} vs {tam}":<{W-2}}║')
+    print(blank)
+    info = f'   {n} batallas por enfrentamiento   │   equipos {tam} vs {tam}'
+    print(f'  ║{info:<{W}}║')
     if args.seed is not None:
-        print(f'  ║  {f"semilla: {args.seed}":<{W-2}}║')
+        semilla = f'   semilla: {args.seed}'
+        print(f'  ║{semilla:<{W}}║')
+    print(blank)
     print(f'  ╚{"═" * W}╝')
     print()
 
-    # ── Progreso ─────────────────────────────────────────────────────────────
+    # ── Progreso ────────────────────────────────────────────────────────────
     resultados = []
     t_total = time.time()
 
@@ -204,11 +221,10 @@ def main():
 
     elapsed_total = time.time() - t_total
 
-    # ── Resultados ───────────────────────────────────────────────────────────
+    # ── Resultados ──────────────────────────────────────────────────────────
     print()
     print(f'  ╔{"═" * W}╗')
     print(f'  ║{"R E S U L T A D O S":^{W}}║')
-    print(f'  ╠{"═" * W}╣')
 
     for nom_a, nom_b, va, vb, emp in resultados:
         total = va + vb + emp
@@ -218,17 +234,24 @@ def main():
         bar_a = _win_bar(pct_a)
         bar_b = _win_bar(pct_b)
 
-        titulo = f'  {nom_a}  vs  {nom_b}'
+        titulo = f'   {nom_a}   vs   {nom_b}'
+
         print(f'  ╠{"═" * W}╣')
+        print(blank)
         print(f'  ║{titulo:<{W}}║')
-        print(f'  ║{"─" * W}║')
-        print(f'  ║   {nom_a:<16}  {bar_a}  {pct_a:5.1f}%  ({va:>3} victorias)  ║')
-        print(f'  ║   {nom_b:<16}  {bar_b}  {pct_b:5.1f}%  ({vb:>3} victorias)  ║')
+        print(blank)
+        print(f'  ║   {nom_a:<{NAME_W}}  {bar_a}  {pct_a:5.1f}%  ({va:>3} victorias)  ║')
+        print(f'  ║   {nom_b:<{NAME_W}}  {bar_b}  {pct_b:5.1f}%  ({vb:>3} victorias)  ║')
         if emp:
-            print(f'  ║   {"Empates":<16}  {emp:>3}{"": <{W-24}}║')
+            fila_emp = f'   {"Empates":<{NAME_W}}  {"":<{BAR_W}}         ({emp:>3} empates)'
+            print(f'  ║{fila_emp:<{W}}║')
+        print(blank)
 
     print(f'  ╠{"═" * W}╣')
-    print(f'  ║  {f"Tiempo total: {elapsed_total:.1f}s":<{W-2}}║')
+    print(blank)
+    tiempo = f'   Tiempo total: {elapsed_total:.1f}s'
+    print(f'  ║{tiempo:<{W}}║')
+    print(blank)
     print(f'  ╚{"═" * W}╝')
     print()
 

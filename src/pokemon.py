@@ -315,3 +315,73 @@ def cargar_pokemon(nombre):
 def lista_nombres_pokemon():
     data = _get_data()
     return list(data['pokemon'].keys())
+
+
+# ── Selección de moveset (Predefinidos / Aleatorios / Manual) ────────────────
+
+N_MOVES_BATALLA = 4   # cuántos movimientos lleva cada Pokémon a la batalla
+N_ATAQUES_RANDOM = 3  # del moveset aleatorio: 3 ataque
+N_ESTADO_RANDOM  = 1  # + 1 estado
+
+
+def aplicar_modo_movimientos(pokemon, modo, indices=None, rng=None):
+    """Reduce pokemon.movimientos a exactamente N_MOVES_BATALLA (=4) según el modo.
+    Modifica `pokemon` in-place y devuelve los índices seleccionados (relativos
+    a la lista original) — útil para serializar la decisión.
+
+    Modos:
+      - 'predefinidos' → los primeros 4 del JSON
+      - 'aleatorios'   → 3 ataque + 1 estado al azar (con fallback)
+      - 'manual'       → usa `indices` (lista de N_MOVES_BATALLA enteros 0..len(movs)-1)
+    """
+    rng = rng or random
+    movs_originales = list(pokemon.movimientos)
+    n_total = len(movs_originales)
+
+    if n_total <= N_MOVES_BATALLA:
+        # Ya tiene 4 o menos — nada que reducir
+        return list(range(n_total))
+
+    modo = (modo or 'predefinidos').lower()
+
+    if modo == 'predefinidos':
+        indices_sel = list(range(N_MOVES_BATALLA))
+
+    elif modo == 'aleatorios':
+        # Separar por categoría
+        idx_ataques = [i for i, m in enumerate(movs_originales) if m.categoria != 'Estado']
+        idx_estados = [i for i, m in enumerate(movs_originales) if m.categoria == 'Estado']
+
+        n_ataque = min(N_ATAQUES_RANDOM, len(idx_ataques))
+        n_estado = min(N_ESTADO_RANDOM, len(idx_estados))
+        # Si faltan estado, completar con ataques (o viceversa)
+        falta = N_MOVES_BATALLA - n_ataque - n_estado
+        if falta > 0:
+            extras_ataques = min(falta, len(idx_ataques) - n_ataque)
+            n_ataque += extras_ataques
+            falta -= extras_ataques
+        if falta > 0:
+            extras_estado = min(falta, len(idx_estados) - n_estado)
+            n_estado += extras_estado
+
+        sel_ataques = rng.sample(idx_ataques, n_ataque) if n_ataque > 0 else []
+        sel_estado  = rng.sample(idx_estados, n_estado) if n_estado > 0 else []
+        indices_sel = sorted(sel_ataques + sel_estado)
+
+    elif modo == 'manual':
+        if not indices or len(indices) != N_MOVES_BATALLA:
+            raise ValueError(
+                f"Modo 'manual' requiere exactamente {N_MOVES_BATALLA} índices, "
+                f"recibido: {indices}")
+        # Validar que los índices están en rango y son únicos
+        if len(set(indices)) != len(indices):
+            raise ValueError(f"Índices duplicados en modo manual: {indices}")
+        if any(not (0 <= i < n_total) for i in indices):
+            raise ValueError(f"Índices fuera de rango (0..{n_total - 1}): {indices}")
+        indices_sel = list(indices)
+
+    else:
+        raise ValueError(f"Modo de movimientos desconocido: {modo!r}")
+
+    pokemon.movimientos = [movs_originales[i] for i in indices_sel]
+    return indices_sel

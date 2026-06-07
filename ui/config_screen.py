@@ -16,9 +16,9 @@ _OPCIONES_DEF = [
     {'label': 'Equipo rival',       'key': 'equipo_rival',
      'valores': ['Aleatorio', 'Elegir manual'],                                       'idx': 0},
     {'label': 'Tus movimientos',    'key': 'movs_jugador',
-     'valores': ['Predefinidos', 'Aleatorios'],                                       'idx': 0},
+     'valores': ['Predefinidos', 'Aleatorios', 'Manual'],                             'idx': 0},
     {'label': 'Movs del rival',     'key': 'movs_rival',
-     'valores': ['Predefinidos', 'Aleatorios'],                                       'idx': 1},
+     'valores': ['Predefinidos', 'Aleatorios', 'Manual'],                             'idx': 0},
     {'label': 'Inteligencia rival', 'key': 'nivel_ia',
      'valores': ['Nivel 1  Aleatorio', 'Nivel 2  Heurístico', 'Nivel 3  Minimax'],   'idx': 1},
 ]

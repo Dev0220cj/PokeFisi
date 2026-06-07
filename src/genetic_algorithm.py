@@ -15,17 +15,26 @@ Diseño clave:
 import json
 import os
 import random
+import signal
+import time
 import multiprocessing as mp
 from datetime import datetime
 
 from config import GENETIC_POPULATION, GENETIC_GENERATIONS, GENETIC_BATTLES_PER_EVAL
-from src.pokemon import cargar_pokemon, lista_nombres_pokemon
+from src.pokemon import cargar_pokemon, lista_nombres_pokemon, aplicar_modo_movimientos
 from src.battle_engine import BattleEngine
 from src.ai_agent import (
     RandomAgent, HeuristicAgent, MinimaxAgent,
     N_FACTORES_EVAL, PESOS_EVAL_DEFAULT, PESOS_EVAL_UNIFORME,
 )
 from src.agent_utils import AgenteVolteado
+
+
+# ── Inicializador de workers (suprime Ctrl+C en subprocesos) ────────────────
+
+def _init_worker_suppress_sigint():
+    """Los workers ignoran SIGINT: el proceso principal maneja Ctrl+C."""
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
 
 
 # ── Utilidades de pesos ──────────────────────────────────────────────────────
@@ -103,6 +112,13 @@ def _jugar_batalla(pesos_ia, nombres_j, nombres_i, rival='heuristic',
 
     equipo_j = [cargar_pokemon(n) for n in nombres_j]
     equipo_i = [cargar_pokemon(n) for n in nombres_i]
+
+    # Reducir 8 → 4 movs por Pokémon (matching deployment: el juego también
+    # reduce a 4). 'aleatorios' = 3 ataques + 1 estado, sorteo bajo CRN
+    # (random ya está seedeado arriba → reproducible por battle_seed).
+    # Da señal real a estado_ratio/dot_ratio/pp_ratio de evaluar().
+    for pkm in equipo_j + equipo_i:
+        aplicar_modo_movimientos(pkm, 'aleatorios')
 
     engine = BattleEngine(equipo_j, equipo_i)
     trainee = MinimaxAgent(pesos=pesos_ia, profundidad=2)
@@ -283,34 +299,66 @@ class GeneticOptimizer:
 
     # ── Ciclo evolutivo principal ───────────────────────────────────────────
 
-    def evolucionar(self, callback=None):
-        """Corre el GA. Devuelve el mejor individuo encontrado."""
-        gens = self.generaciones
+    def evolucionar(self, callback=None, checkpoint_path=None, estado_inicial=None):
+        """Corre el GA. Devuelve el mejor individuo encontrado.
 
-        # ── Población inicial: anclas + individuos sembrados/aleatorios ─────
-        poblacion = []
-        if self.semilla is not None:
-            # n_anclas copias exactas de la semilla (anti-regresión)
-            for _ in range(min(self.n_anclas, self.poblacion_size)):
-                poblacion.append(list(self.semilla))
-        while len(poblacion) < self.poblacion_size:
-            poblacion.append(self._crear_individuo())
+        Args:
+            callback: fn(gen, mejor_hist, mejor_gen, media, ind_hist, ind_gen)
+                      llamada al inicio de cada generación.
+            checkpoint_path: si se pasa, guarda el estado COMPLETO (población,
+                             fitnesses, RNG state) al final de cada generación.
+                             Esto permite reanudar con `estado_inicial` en otra
+                             sesión.
+            estado_inicial: dict devuelto por `cargar_estado_completo`. Si se
+                            pasa, reanuda desde ese estado en vez de empezar de
+                            cero.
+        """
+        gens = self.generaciones
+        t_inicio_sesion = time.time()
+        t_acumulado_previo = estado_inicial.get('t_acumulado', 0) if estado_inicial else 0
+
+        # ── Población inicial (resume o nueva) ──────────────────────────────
+        if estado_inicial is not None:
+            poblacion = [list(p) for p in estado_inicial['poblacion']]
+            fitnesses = list(estado_inicial['fitnesses'])
+            gen_inicio = estado_inicial['gen_completada'] + 1
+        else:
+            poblacion = []
+            if self.semilla is not None:
+                # n_anclas copias exactas de la semilla (anti-regresión)
+                for _ in range(min(self.n_anclas, self.poblacion_size)):
+                    poblacion.append(list(self.semilla))
+            while len(poblacion) < self.poblacion_size:
+                poblacion.append(self._crear_individuo())
+            gen_inicio = 0
+            fitnesses = None
 
         # ── Pool de workers (uno solo para todo el entrenamiento) ───────────
         pool_ctx = None
         if self.usar_paralelismo and self.n_workers > 1:
-            pool_ctx = mp.Pool(self.n_workers)
+            pool_ctx = mp.Pool(self.n_workers,
+                               initializer=_init_worker_suppress_sigint)
 
         try:
-            # Escenarios para la primera evaluación
-            scen_seed = self._rng.randint(0, 2**31 - 1)
-            esc_h = generar_escenarios(self.n_batallas_heur, seed=scen_seed,
-                                        tam_equipo=self.tam_equipo)
-            esc_m = generar_escenarios(self.n_batallas_mini, seed=scen_seed + 1,
-                                        tam_equipo=self.tam_equipo)
-            fitnesses = self._evaluar_poblacion(poblacion, esc_h, esc_m, pool_ctx)
+            # Primera evaluación SOLO si no es resume (en resume ya viene evaluada)
+            if fitnesses is None:
+                total_batallas_inicial = self.poblacion_size * (
+                    self.n_batallas_heur + self.n_batallas_mini)
+                print(f"  Evaluando población inicial ({self.poblacion_size} individuos × "
+                      f"{self.n_batallas_heur + self.n_batallas_mini} batallas = "
+                      f"{total_batallas_inicial} batallas)... espera ~3-5 min",
+                      flush=True)
+                t0 = time.time()
+                scen_seed = self._rng.randint(0, 2**31 - 1)
+                esc_h = generar_escenarios(self.n_batallas_heur, seed=scen_seed,
+                                            tam_equipo=self.tam_equipo)
+                esc_m = generar_escenarios(self.n_batallas_mini, seed=scen_seed + 1,
+                                            tam_equipo=self.tam_equipo)
+                fitnesses = self._evaluar_poblacion(poblacion, esc_h, esc_m, pool_ctx)
+                print(f"  Evaluación inicial completada en {(time.time()-t0)/60:.1f} min. "
+                      f"Iniciando generaciones...", flush=True)
 
-            for gen in range(gens):
+            for gen in range(gen_inicio, gens):
                 # Actualizar mejor histórico
                 mejor_idx = max(range(len(fitnesses)), key=lambda i: fitnesses[i])
                 if fitnesses[mejor_idx] > self.mejor_fitness:
@@ -337,9 +385,16 @@ class GeneticOptimizer:
                 esc_m = generar_escenarios(self.n_batallas_mini, seed=scen_seed + 1,
                                             tam_equipo=self.tam_equipo)
 
-                # Elitismo: el campeón pasa directo (re-evaluado con escenarios nuevos
-                # para no arrastrar fitness "suertudos")
-                nueva_poblacion = [list(poblacion[mejor_idx])]
+                # Elitismo: el campeón HISTÓRICO pasa siempre (no solo el de
+                # esta gen). Así no se pierde el mejor conocido aunque la gen
+                # actual tenga un ganador distinto. Si el mejor de esta gen es
+                # diferente al histórico, también pasa (dos élites).
+                # Ambos se re-evalúan con escenarios nuevos para no arrastrar
+                # fitness "suertudos" de su generación original.
+                nueva_poblacion = [list(self.mejor_individuo)]
+                if poblacion[mejor_idx] != self.mejor_individuo:
+                    if len(nueva_poblacion) < self.poblacion_size:
+                        nueva_poblacion.append(list(poblacion[mejor_idx]))
                 # Las anclas se mantienen si hay semilla (anti-regresión)
                 if self.semilla is not None:
                     for _ in range(self.n_anclas):
@@ -355,12 +410,104 @@ class GeneticOptimizer:
 
                 poblacion = nueva_poblacion
                 fitnesses = self._evaluar_poblacion(poblacion, esc_h, esc_m, pool_ctx)
+
+                # ── Checkpoint completo (para resume en otra sesión) ────────
+                if checkpoint_path:
+                    t_acum = t_acumulado_previo + (time.time() - t_inicio_sesion)
+                    self._guardar_checkpoint_completo(
+                        checkpoint_path, poblacion, fitnesses,
+                        gen_completada=gen, t_acumulado=t_acum,
+                        metadatos_extra={
+                            'estado': 'en_progreso',
+                            'gen_actual': gen + 1,
+                        })
         finally:
             if pool_ctx is not None:
-                pool_ctx.close()
-                pool_ctx.join()
+                pool_ctx.terminate()
+                # NO pool.join(): en Windows los threads internos del Pool
+                # (result_handler, task_handler) quedan trabados tras terminate()
+                # → join() nunca retorna. El GC limpia los recursos al salir.
 
         return self.mejor_individuo
+
+    # ── Checkpoint completo (estado resumable) ──────────────────────────────
+
+    def _guardar_checkpoint_completo(self, path, poblacion, fitnesses,
+                                      gen_completada, t_acumulado,
+                                      metadatos_extra=None):
+        """Guarda estado COMPLETO (incluye población, fitnesses y RNG state)
+        para poder reanudar el entrenamiento en otra sesión."""
+        rng_state = self._rng.getstate()
+        data = {
+            'pesos': self.mejor_individuo,
+            'fitness': self.mejor_fitness,
+            'historial': self.historial,
+            'fecha': datetime.now().isoformat(timespec='seconds'),
+            'hiperparametros': {
+                'poblacion_size': self.poblacion_size,
+                'generaciones': self.generaciones,
+                'n_batallas_heur': self.n_batallas_heur,
+                'n_batallas_mini': self.n_batallas_mini,
+                'sigma_semilla': self.sigma_semilla,
+                'n_anclas': self.n_anclas,
+                'tam_equipo': self.tam_equipo,
+                'master_seed': self.master_seed,
+                'semilla': self.semilla,
+            },
+            'estado_evolutivo': {
+                'poblacion': [list(p) for p in poblacion],
+                'fitnesses': list(fitnesses),
+                'gen_completada': gen_completada,
+                # RNG: (version, tupla_de_ints, gauss_value) → versión JSON-able
+                'rng_state': [rng_state[0], list(rng_state[1]), rng_state[2]],
+            },
+            'tiempo_entrenamiento_min': round(t_acumulado / 60, 2),
+        }
+        if metadatos_extra:
+            data.update(metadatos_extra)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, 'w', encoding='utf-8') as f:
+            json.dump(data, f, indent=2)
+
+    def cargar_estado_completo(self, path):
+        """Carga checkpoint para reanudar entrenamiento. Restaura el estado
+        interno del optimizer (mejor, historial, RNG) y devuelve un dict con
+        la población y fitnesses para pasar a `evolucionar(estado_inicial=...)`.
+
+        Devuelve None si el archivo no existe, está corrupto, ya está
+        completado, o no tiene estado_evolutivo (checkpoint antiguo)."""
+        if not os.path.exists(path):
+            return None
+        try:
+            with open(path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+        except (json.JSONDecodeError, OSError):
+            return None
+
+        if data.get('estado') == 'completado':
+            return None
+
+        ev = data.get('estado_evolutivo')
+        if ev is None:
+            return None
+
+        # Restaurar estado del optimizer
+        self.mejor_individuo = data.get('pesos')
+        self.mejor_fitness = data.get('fitness', -1.0)
+        self.historial = data.get('historial', [])
+
+        # Restaurar RNG state (lista → tupla de tuplas, como Python lo espera)
+        rng_state = ev.get('rng_state')
+        if rng_state:
+            state_tuple = (rng_state[0], tuple(rng_state[1]), rng_state[2])
+            self._rng.setstate(state_tuple)
+
+        return {
+            'poblacion': ev['poblacion'],
+            'fitnesses': ev['fitnesses'],
+            'gen_completada': ev['gen_completada'],
+            't_acumulado': data.get('tiempo_entrenamiento_min', 0) * 60,
+        }
 
     # ── Persistencia ────────────────────────────────────────────────────────
 

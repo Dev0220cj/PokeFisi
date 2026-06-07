@@ -259,7 +259,14 @@ class BattleEngine:
                 idx_mov = accion['indice']
                 movs_validos = [m for m in atacante.movimientos if m.tiene_pp()]
                 if not movs_validos:
-                    msgs.append(f"{atacante.nombre} no tiene movimientos disponibles!")
+                    sentinel_atk = '__HP_UPDATE_J__' if lado == 'jugador' else '__HP_UPDATE_IA__'
+                    msgs.append(sentinel_atk)
+                    atacante.hp = 0
+                    msgs.append(f"¡{atacante.nombre} no tiene más movimientos y no puede continuar!")
+                    nombre_nuevo = self._auto_cambiar_si_necesario(lado)
+                    if nombre_nuevo and lado == 'ia':
+                        msgs.append(f"__SWITCH_IA:{self.activos['ia']}")
+                        msgs.append(f"¡El rival envía a {nombre_nuevo}!")
                     continue
 
                 if idx_mov < len(atacante.movimientos) and atacante.movimientos[idx_mov].tiene_pp():
@@ -300,6 +307,11 @@ class BattleEngine:
                         if nombre_nuevo:
                             msgs.append(f"__SWITCH_IA:{self.activos['ia']}")
                             msgs.append(f"¡El rival envía a {nombre_nuevo}!")
+                else:
+                    msgs.append('__HP_UPDATE_J__')
+                    pj.hp = 0
+                    msgs.append(f"¡{pj.nombre} no tiene más movimientos y no puede continuar!")
+                    self._auto_cambiar_si_necesario('jugador')
             elif not pj.esta_vivo():
                 msgs.append(f"¡{pj.nombre} se debilitó!")
                 self._auto_cambiar_si_necesario('jugador')
@@ -320,6 +332,14 @@ class BattleEngine:
                     if not pj.esta_vivo():
                         msgs.append(f"¡{pj.nombre} se debilitó!")
                         self._auto_cambiar_si_necesario('jugador')
+                else:
+                    msgs.append('__HP_UPDATE_IA__')
+                    pi.hp = 0
+                    msgs.append(f"¡{pi.nombre} no tiene más movimientos y no puede continuar!")
+                    nombre_nuevo = self._auto_cambiar_si_necesario('ia')
+                    if nombre_nuevo:
+                        msgs.append(f"__SWITCH_IA:{self.activos['ia']}")
+                        msgs.append(f"¡El rival envía a {nombre_nuevo}!")
             elif not pi.esta_vivo():
                 msgs.append(f"¡{pi.nombre} se debilitó!")
                 nombre_nuevo = self._auto_cambiar_si_necesario('ia')

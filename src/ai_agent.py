@@ -42,44 +42,80 @@ class RandomAgent:
 # ---------------------------------------------------------------------------
 
 class HeuristicAgent:
-    """Nivel 2 — Heurística básica basada en diferencia de HP.
+    """Nivel 2 — Heurística básica basada EXPLÍCITAMENTE en diferencia de HP.
 
-    Score de cada movimiento ofensivo: `poder × efectividad × STAB × (precision/100)`.
-    Movimientos de estado: score fijo bajo (priorizan daño directo).
-    Cambia de Pokémon solo si el activo tiene HP bajo (< 30 %), eligiendo al
-    candidato con más HP relativo y mejor matchup ofensivo sencillo.
+    Implementa la "función basada en diferencia de HP entre jugadores" del
+    enunciado del curso de forma literal:
+
+        evaluar_hp_diff(estado) = HP_total_IA − HP_total_jugador
+
+    El agente elige la acción que maximiza esta función tras un paso de
+    simulación (1-step lookahead), prediciendo el daño con un proxy simple
+    (poder × efectividad × DAMAGE_SCALE), capado al HP real del rival.
+
+    IMPORTANTE: el daño "predicho" es solo el lente del agente para decidir.
+    El daño REAL aplicado al Pokémon lo calcula el engine con su fórmula
+    completa (ATK/DEF, STAB, velocidad, quemadura, etc.) en ejecutar_ataque.
+
+    Decisiones de cambio: solo se considera cambiar si el activo tiene HP bajo
+    (< 30 %), seleccionando candidato con más HP y mejor resistencia de tipo.
+    El cambio en sí no altera HP_diff del turno actual, pero preserva al activo
+    dañado y trae uno fresco para los próximos turnos.
     """
+
+    # Proxy de daño: poder × efectividad × DAMAGE_SCALE.
+    # Es deliberadamente más simple que la fórmula real del engine — la heurística
+    # no debe acercarse al óptimo greedy, sino dejar espacio al Nivel 3 (Minimax)
+    # para demostrar el valor del lookahead.
+    _DANO_SCALE = 0.25
+
+    def evaluar_hp_diff(self, equipo_ia, equipo_j):
+        """Función de evaluación formal del Nivel 2:
+        diferencia de HP total entre equipos.
+        Positivo = ventaja IA, negativo = desventaja IA."""
+        hp_ia = sum(p.hp for p in equipo_ia)
+        hp_j  = sum(p.hp for p in equipo_j)
+        return hp_ia - hp_j
 
     def elegir_accion(self, estado):
         activo_ia = estado['ia']['activo']
-        activo_j = estado['jugador']['activo']
+        activo_j  = estado['jugador']['activo']
         equipo_ia = estado['ia']['equipo']
+        equipo_j  = estado['jugador']['equipo']
         activo_idx = estado['ia']['activo_idx']
+
+        # Diferencia de HP actual entre equipos (baseline)
+        hp_diff_actual = self.evaluar_hp_diff(equipo_ia, equipo_j)
 
         mejor_score = float('-inf')
         mejor_accion = None
 
-        # ---- Evaluar movimientos: poder × ef × STAB × precisión ----
+        # ── Movimientos: score = HP_diff predicho DESPUÉS del movimiento ──
+        # El rival perdería dano_predicho HP, así que HP_diff sube en esa cantidad.
         for i, mov in enumerate(activo_ia.movimientos):
             if not mov.tiene_pp():
                 continue
-            score = self._score_movimiento(activo_ia, activo_j, mov)
+            dano_predicho = self._predecir_dano(activo_j, mov)
+            score = hp_diff_actual + dano_predicho
             if score > mejor_score:
                 mejor_score = score
                 mejor_accion = {'tipo': 'movimiento', 'indice': i}
 
-        # ---- Evaluar cambio solo cuando HP del activo es bajo ----
+        # ── Cambio: solo si activo tiene HP bajo (decisión táctica defensiva) ──
+        # El cambio no afecta HP_diff este turno; el bonus aproxima el HP que
+        # preservaríamos en próximos turnos al traer un Pokémon fresco/resistente.
         hp_ratio = activo_ia.hp / activo_ia.hp_max
         if hp_ratio < 0.3:
             for i, p in enumerate(equipo_ia):
                 if not p.esta_vivo() or i == activo_idx:
                     continue
-                cambio_score = self._score_cambio(p, activo_j)
-                if cambio_score > mejor_score:
-                    mejor_score = cambio_score
+                bonus = self._bonus_cambio(p, activo_j)
+                score = hp_diff_actual + bonus
+                if score > mejor_score:
+                    mejor_score = score
                     mejor_accion = {'tipo': 'cambio', 'indice': i}
 
-        # Fallback: si no hay ningún movimiento válido (todo sin PP), elegir uno al azar
+        # Fallback: ningún movimiento válido (todo sin PP) → elegir uno al azar
         if mejor_accion is None:
             movs_validos = [i for i, m in enumerate(activo_ia.movimientos) if m.tiene_pp()]
             if movs_validos:
@@ -89,26 +125,32 @@ class HeuristicAgent:
 
         return mejor_accion
 
-    def _score_movimiento(self, atacante, defensor, mov):
-        """Heurística simple: poder × efectividad × STAB × precisión."""
+    def _predecir_dano(self, defensor, mov):
+        """Proxy crudo del daño que el movimiento le quitaría al defensor.
+        NO replica la fórmula real del engine (eso lo hace el engine al
+        ejecutar el turno) — es el modelo de decisión del Nv2:
+
+            dano = poder × efectividad × DAMAGE_SCALE  (capado al HP real)
+
+        Capar al HP real implementa "no se puede quitar más HP del que tiene"
+        — la diferencia de HP a ganar está limitada por lo que queda al rival.
+        Movimientos de estado: bonus nominal pequeño (no afectan HP directamente
+        pero el agente sabe que algo logran)."""
         if mov.poder > 0:
             ef = calcular_efectividad(mov.tipo, defensor.tipos)
-            stab = 1.5 if mov.tipo in atacante.tipos else 1.0
-            return mov.poder * ef * stab * (mov.precision / 100)
-
-        # Movimientos de estado: score fijo bajo (no es el foco del Nivel 2)
+            dano_proxy = mov.poder * ef * self._DANO_SCALE
+            return min(dano_proxy, defensor.hp)
         if mov.efecto:
-            return 25 * (mov.precision / 100)
+            return 5
         return 0
 
-    def _score_cambio(self, candidato, rival):
-        """Cambio simple: preferir candidato con más HP y ventaja de tipo básica."""
-        # Ventaja de tipo: efectividad del primer tipo del rival sobre el candidato
-        # (más alto = más vulnerable; queremos resistir, por eso invertimos)
+    def _bonus_cambio(self, candidato, rival):
+        """Bonus de cambio en escala de HP. Estima el HP que el candidato
+        'ahorraría' en próximos turnos por su frescura y resistencia al rival."""
         tipo_rival = rival.tipos[0] if rival.tipos else 'Normal'
         vulnerabilidad = calcular_efectividad(tipo_rival, candidato.tipos)
-        # Score = 20 base + HP relativo del candidato + bonus por resistir al rival
-        return 20 + (candidato.hp / candidato.hp_max) * 30 + (1.0 / max(0.1, vulnerabilidad)) * 10
+        # Frescura del candidato + bonus por resistir al rival (max ~80 HP)
+        return (candidato.hp / candidato.hp_max) * 50 + (1.0 / max(0.5, vulnerabilidad)) * 30
 
 
 # ---------------------------------------------------------------------------

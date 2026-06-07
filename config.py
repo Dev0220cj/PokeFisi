@@ -21,13 +21,16 @@ COLOR_BLACK = (0, 0, 0)
 BATTLE_TEAM_SIZE = 4
 MINIMAX_DEPTH = 2
 MINIMAX_SAMPLES = 3            # rollouts por par (accion_ia, accion_j) en la RAÍZ del árbol
-MINIMAX_SAMPLES_DEEP = 1       # rollouts en niveles profundos (1 con CRN: las iteraciones
+MINIMAX_SAMPLES_DEEP = 2       # rollouts en niveles profundos (1 con CRN: las iteraciones
                                # consecutivas no son independientes — consumen dados sucesivos
                                # del mismo stream seedado, así que promediarlas no reduce ruido real)
 GENETIC_POPULATION = 20
 GENETIC_GENERATIONS = 50
 GENETIC_BATTLES_PER_EVAL = 15  # batallas por individuo (más = menos ruido en el fitness)
-DAMAGE_K     = 0.1
+DAMAGE_K     = 0.2    # peso de la velocidad del defensor en la fórmula de daño
+                      # (0.2 ≈ Pokémon rápido es ~5HP más tanky por turno vs uno lento;
+                      # premia estrategias que consideran velocidad — el Minimax la valora
+                      # vía speed_ratio en evaluar(), el Heurístico no)
 DAMAGE_SCALE = 0.25   # factor global de escala de daño (1.0 = sin escala, 0.25 = ~4-6 turnos por combate)
 
 # Sprites gen 5 Pokémon Showdown

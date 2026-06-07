@@ -7,7 +7,7 @@ import pygame
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from config import SCREEN_WIDTH, SCREEN_HEIGHT, FPS, TITLE, COLOR_BG
-from src.pokemon import cargar_pokemon, lista_nombres_pokemon
+from src.pokemon import cargar_pokemon, lista_nombres_pokemon, aplicar_modo_movimientos
 from src.battle_engine import BattleEngine
 from src.ai_agent import (
     RandomAgent, HeuristicAgent, MinimaxAgent,
@@ -17,6 +17,7 @@ from ui.battle_screen import BattleScreen
 from ui.menu_screen import TeamSelectScreen
 from ui.intro_screen import IntroScreen
 from ui.config_screen import ConfigScreen
+from ui.move_select_screen import MoveSelectScreen
 
 import json
 DATA_PATH = os.path.join(os.path.dirname(__file__), 'data', 'pokemon_data.json')
@@ -73,14 +74,70 @@ def _nivel_ia_from_config(cfg: dict) -> int:
     return 2
 
 
-def _iniciar_batalla(nombres_j, nombres_ia, nivel_ia, screen, fonts):
-    """Construye engine, agente y battle_screen y devuelve el estado inicial."""
-    equipo_j  = [cargar_pokemon(n) for n in nombres_j]
-    equipo_ia = [cargar_pokemon(n) for n in nombres_ia]
+def _modo_movs(cfg: dict, key: str) -> str:
+    """Devuelve 'predefinidos' | 'aleatorios' | 'manual' según el config."""
+    val = cfg.get(key, 'Predefinidos').lower()
+    if 'aleator' in val:
+        return 'aleatorios'
+    if 'manual' in val:
+        return 'manual'
+    return 'predefinidos'
+
+
+def _aplicar_modo_a_equipo(equipo, modo, indices_por_pkm=None):
+    """Aplica un modo de movimientos a todos los Pokémon del equipo.
+    Para 'manual' espera una lista de listas de índices (uno por Pokémon)."""
+    for i, pkm in enumerate(equipo):
+        ind = indices_por_pkm[i] if (indices_por_pkm and modo == 'manual') else None
+        aplicar_modo_movimientos(pkm, modo, indices=ind)
+
+
+def _arrancar_batalla(equipo_j, equipo_ia, nivel_ia, screen, fonts):
+    """Construye engine + agente + battle_screen. Se llama cuando los equipos
+    ya tienen sus movimientos definitivos (4 cada Pokémon)."""
     engine        = BattleEngine(equipo_j, equipo_ia)
     agente_ia     = crear_agente(nivel_ia)
     battle_screen = BattleScreen(screen, fonts)
     return engine, agente_ia, battle_screen
+
+
+def _msgs_inicio_batalla():
+    """Devuelve los mensajes/colas iniciales de una batalla recién comenzada."""
+    return ['¡Comienza la batalla!'], ['¡Comienza la batalla!']
+
+
+def _iniciar_post_seleccion(nombres_j, nombres_ia, nivel_ia, cfg, screen, fonts):
+    """Tras seleccionar equipos, construye Pokémon y aplica los modos
+    Predefinidos/Aleatorios. Si algún lado es Manual, devuelve una MoveSelectScreen
+    pendiente; si no, devuelve la batalla lista para arrancar.
+
+    Devuelve un dict con la clave 'estado' = 'MOVE_SELECT' | 'BATTLE' y los
+    objetos correspondientes."""
+    equipo_j  = [cargar_pokemon(n) for n in nombres_j]
+    equipo_ia = [cargar_pokemon(n) for n in nombres_ia]
+
+    modo_j = _modo_movs(cfg, 'movs_jugador')
+    modo_i = _modo_movs(cfg, 'movs_rival')
+    if modo_j != 'manual':
+        _aplicar_modo_a_equipo(equipo_j, modo_j)
+    if modo_i != 'manual':
+        _aplicar_modo_a_equipo(equipo_ia, modo_i)
+
+    base = {'equipo_j': equipo_j, 'equipo_ia': equipo_ia}
+
+    # Jugador con Manual tiene prioridad (se hace primero)
+    if modo_j == 'manual':
+        ms = MoveSelectScreen(screen, fonts, equipo_j, titulo='TUS MOVIMIENTOS')
+        return {**base, 'estado': 'MOVE_SELECT', 'move_select': ms, 'lado': 'jugador'}
+    if modo_i == 'manual':
+        ms = MoveSelectScreen(screen, fonts, equipo_ia, titulo='MOVIMIENTOS DEL RIVAL')
+        return {**base, 'estado': 'MOVE_SELECT', 'move_select': ms, 'lado': 'rival'}
+
+    # Sin Manual: arrancar batalla directamente
+    engine, agente_ia, battle_screen = _arrancar_batalla(
+        equipo_j, equipo_ia, nivel_ia, screen, fonts)
+    return {**base, 'estado': 'BATTLE',
+            'engine': engine, 'agente_ia': agente_ia, 'battle_screen': battle_screen}
 
 
 def main():
@@ -103,6 +160,10 @@ def main():
     team_select:    TeamSelectScreen | None = None
     team_select_ia: TeamSelectScreen | None = None
     battle_screen:  BattleScreen | None = None
+    move_select:    MoveSelectScreen | None = None
+    move_select_lado: str = ''                # 'jugador' o 'rival'
+    equipo_j_pre:    list = []                # equipos pre-construidos (durante MOVE_SELECT)
+    equipo_ia_pre:   list = []
     engine     = None
     agente_ia  = None
     nivel_ia   = 2
@@ -167,24 +228,33 @@ def main():
                             screen, fonts, tam=tam, titulo='EQUIPO DEL RIVAL')
                         estado_app = 'TEAM_SELECT_IA'
                     else:
-                        # Ambos aleatorios → ir directo a batalla
+                        # Ambos aleatorios → ir directo a batalla (o MoveSelect si Manual)
                         nombres_j  = _equipo_aleatorio(tam)
                         nombres_ia = _equipo_aleatorio(tam, excluir=nombres_j)
-                        engine, agente_ia, battle_screen = _iniciar_batalla(
-                            nombres_j, nombres_ia, nivel_ia, screen, fonts)
-                        _visual['activo_ia'] = 0
-                        _visual['activo_j']  = 0
-                        mensajes_batalla = ['¡Comienza la batalla!']
-                        cola_mensajes    = ['¡Comienza la batalla!']
-                        mensaje_dialogo  = cola_mensajes.pop(0)
-                        t_mensaje_dial   = pygame.time.get_ticks()
-                        modo_batalla     = 'luchar'
-                        seleccion_mov    = 0
-                        ganador            = None
-                        _ganador_pendiente = None
-                        esperando_turno  = False
-                        delay_turno      = 0
-                        estado_app       = 'BATTLE'
+                        _post = _iniciar_post_seleccion(
+                            nombres_j, nombres_ia, nivel_ia, config, screen, fonts)
+                        equipo_j_pre  = _post['equipo_j']
+                        equipo_ia_pre = _post['equipo_ia']
+                        if _post['estado'] == 'MOVE_SELECT':
+                            move_select      = _post['move_select']
+                            move_select_lado = _post['lado']
+                            estado_app       = 'MOVE_SELECT'
+                        else:
+                            engine        = _post['engine']
+                            agente_ia     = _post['agente_ia']
+                            battle_screen = _post['battle_screen']
+                            _visual['activo_ia'] = 0
+                            _visual['activo_j']  = 0
+                            mensajes_batalla, cola_mensajes = _msgs_inicio_batalla()
+                            mensaje_dialogo  = cola_mensajes.pop(0)
+                            t_mensaje_dial   = pygame.time.get_ticks()
+                            modo_batalla     = 'luchar'
+                            seleccion_mov    = 0
+                            ganador            = None
+                            _ganador_pendiente = None
+                            esperando_turno  = False
+                            delay_turno      = 0
+                            estado_app       = 'BATTLE'
                 elif resultado == 'volver':
                     estado_app = 'INTRO'
 
@@ -202,12 +272,94 @@ def main():
                         estado_app = 'TEAM_SELECT_IA'
                     else:
                         nombres_ia = _equipo_aleatorio(tam, excluir=nombres_j)
-                        engine, agente_ia, battle_screen = _iniciar_batalla(
-                            nombres_j, nombres_ia, nivel_ia, screen, fonts)
+                        _post = _iniciar_post_seleccion(
+                            nombres_j, nombres_ia, nivel_ia, config, screen, fonts)
+                        equipo_j_pre  = _post['equipo_j']
+                        equipo_ia_pre = _post['equipo_ia']
+                        if _post['estado'] == 'MOVE_SELECT':
+                            move_select      = _post['move_select']
+                            move_select_lado = _post['lado']
+                            estado_app       = 'MOVE_SELECT'
+                        else:
+                            engine        = _post['engine']
+                            agente_ia     = _post['agente_ia']
+                            battle_screen = _post['battle_screen']
+                            _visual['activo_ia'] = 0
+                            _visual['activo_j']  = 0
+                            mensajes_batalla, cola_mensajes = _msgs_inicio_batalla()
+                            mensaje_dialogo  = cola_mensajes.pop(0)
+                            t_mensaje_dial   = pygame.time.get_ticks()
+                            modo_batalla     = 'luchar'
+                            seleccion_mov    = 0
+                            ganador            = None
+                            _ganador_pendiente = None
+                            esperando_turno  = False
+                            delay_turno      = 0
+                            estado_app       = 'BATTLE'
+                elif resultado == 'volver':
+                    estado_app = 'CONFIG'
+
+            # TEAM_SELECT_IA (equipo del rival)
+            elif estado_app == 'TEAM_SELECT_IA':
+                resultado = team_select_ia.manejar_evento(event)
+                if resultado == 'confirmar':
+                    nombres_j  = nombres_jugador_pendiente
+                    nombres_ia = team_select_ia.equipo_seleccionado()
+                    _post = _iniciar_post_seleccion(
+                        nombres_j, nombres_ia, nivel_ia, config, screen, fonts)
+                    equipo_j_pre  = _post['equipo_j']
+                    equipo_ia_pre = _post['equipo_ia']
+                    if _post['estado'] == 'MOVE_SELECT':
+                        move_select      = _post['move_select']
+                        move_select_lado = _post['lado']
+                        estado_app       = 'MOVE_SELECT'
+                    else:
+                        engine        = _post['engine']
+                        agente_ia     = _post['agente_ia']
+                        battle_screen = _post['battle_screen']
                         _visual['activo_ia'] = 0
                         _visual['activo_j']  = 0
-                        mensajes_batalla = ['¡Comienza la batalla!']
-                        cola_mensajes    = ['¡Comienza la batalla!']
+                        mensajes_batalla, cola_mensajes = _msgs_inicio_batalla()
+                        mensaje_dialogo  = cola_mensajes.pop(0)
+                        t_mensaje_dial   = pygame.time.get_ticks()
+                        modo_batalla     = 'luchar'
+                        seleccion_mov    = 0
+                        ganador          = None
+                        _ganador_pendiente = None
+                        esperando_turno  = False
+                        delay_turno      = 0
+                        estado_app       = 'BATTLE'
+                elif resultado == 'volver':
+                    # Si el jugador eligió manualmente, volver a su selección
+                    if config.get('equipo_jugador') == 'Elegir manual':
+                        estado_app = 'TEAM_SELECT'
+                    else:
+                        estado_app = 'CONFIG'
+
+            # MOVE_SELECT (selección manual de movimientos del lado actual)
+            elif estado_app == 'MOVE_SELECT':
+                resultado = move_select.manejar_evento(event)
+                if resultado == 'completo':
+                    # Aplicar los índices seleccionados al equipo correspondiente
+                    indices_list = move_select.get_resultado()
+                    equipo_actual = equipo_j_pre if move_select_lado == 'jugador' else equipo_ia_pre
+                    for i, pkm in enumerate(equipo_actual):
+                        aplicar_modo_movimientos(pkm, 'manual', indices=indices_list[i])
+
+                    # ¿Falta el otro lado?
+                    modo_otro = _modo_movs(config, 'movs_rival' if move_select_lado == 'jugador' else 'movs_jugador')
+                    if move_select_lado == 'jugador' and modo_otro == 'manual':
+                        # Pasar a seleccionar movs del rival
+                        move_select = MoveSelectScreen(
+                            screen, fonts, equipo_ia_pre, titulo='MOVIMIENTOS DEL RIVAL')
+                        move_select_lado = 'rival'
+                    else:
+                        # Todos los lados manuales ya están seleccionados → arrancar batalla
+                        engine, agente_ia, battle_screen = _arrancar_batalla(
+                            equipo_j_pre, equipo_ia_pre, nivel_ia, screen, fonts)
+                        _visual['activo_ia'] = 0
+                        _visual['activo_j']  = 0
+                        mensajes_batalla, cola_mensajes = _msgs_inicio_batalla()
                         mensaje_dialogo  = cola_mensajes.pop(0)
                         t_mensaje_dial   = pygame.time.get_ticks()
                         modo_batalla     = 'luchar'
@@ -218,34 +370,8 @@ def main():
                         delay_turno      = 0
                         estado_app       = 'BATTLE'
                 elif resultado == 'volver':
+                    # Simplificación: volver a CONFIG (más predecible que reconstruir el estado anterior)
                     estado_app = 'CONFIG'
-
-            # TEAM_SELECT_IA (equipo del rival)
-            elif estado_app == 'TEAM_SELECT_IA':
-                resultado = team_select_ia.manejar_evento(event)
-                if resultado == 'confirmar':
-                    nombres_j  = nombres_jugador_pendiente
-                    nombres_ia = team_select_ia.equipo_seleccionado()
-                    engine, agente_ia, battle_screen = _iniciar_batalla(
-                        nombres_j, nombres_ia, nivel_ia, screen, fonts)
-                    _visual['activo_ia'] = 0
-                    _visual['activo_j']  = 0
-                    mensajes_batalla = ['¡Comienza la batalla!']
-                    cola_mensajes    = ['¡Comienza la batalla!']
-                    mensaje_dialogo  = cola_mensajes.pop(0)
-                    t_mensaje_dial   = pygame.time.get_ticks()
-                    modo_batalla     = 'luchar'
-                    seleccion_mov    = 0
-                    ganador          = None
-                    esperando_turno  = False
-                    delay_turno      = 0
-                    estado_app       = 'BATTLE'
-                elif resultado == 'volver':
-                    # Si el jugador eligió manualmente, volver a su selección
-                    if config.get('equipo_jugador') == 'Elegir manual':
-                        estado_app = 'TEAM_SELECT'
-                    else:
-                        estado_app = 'CONFIG'
 
             # BATTLE
             elif estado_app == 'BATTLE':
@@ -423,23 +549,38 @@ def main():
                                         modo_cambio_idx = i   # primer clic selecciona
                                 break
 
-        # Auto-avance del diálogo por tiempo
+        # Helper: ¿hay alguna animación de HP en curso? (bloquea avance del diálogo
+        # y activación del banner de victoria para que se sincronice todo)
+        def _hp_anim_en_curso():
+            if not (engine and battle_screen):
+                return False
+            return (battle_screen.hp_animacion_pendiente(
+                        engine.pokemon_activo('jugador'), 'jugador')
+                    or battle_screen.hp_animacion_pendiente(
+                        engine.pokemon_activo('ia'), 'ia'))
+
+        # Auto-avance del diálogo por tiempo (solo si no hay HP animando)
         if (estado_app == 'BATTLE' and mensaje_dialogo is not None
                 and not ganador
                 and pygame.time.get_ticks() - t_mensaje_dial > DIALOGO_DURACION_MS):
-            sig = _pop_mensaje(cola_mensajes, battle_screen, _visual)
-            if sig is not None:
-                mensaje_dialogo = sig
-                t_mensaje_dial  = pygame.time.get_ticks()
+            if _hp_anim_en_curso():
+                # Resetear el timer: esperamos otro ciclo a que la barra termine
+                t_mensaje_dial = pygame.time.get_ticks()
             else:
-                mensaje_dialogo = None
-                # Mostrar victoria ahora que se leyeron todos los mensajes
-                if _ganador_pendiente:
-                    ganador = _ganador_pendiente
+                sig = _pop_mensaje(cola_mensajes, battle_screen, _visual)
+                if sig is not None:
+                    mensaje_dialogo = sig
+                    t_mensaje_dial  = pygame.time.get_ticks()
+                else:
+                    mensaje_dialogo = None
+                    # Mostrar victoria ahora que se leyeron todos los mensajes
+                    if _ganador_pendiente:
+                        ganador = _ganador_pendiente
 
-        # Activar victoria diferida si no hay mensajes pendientes
+        # Activar victoria diferida solo si NO hay HP animando y no hay diálogos pendientes
         if (estado_app == 'BATTLE' and _ganador_pendiente and not ganador
-                and not cola_mensajes and mensaje_dialogo is None):
+                and not cola_mensajes and mensaje_dialogo is None
+                and not _hp_anim_en_curso()):
             ganador = _ganador_pendiente
 
         # Activar cambio forzado del jugador cuando sus mensajes se hayan leído
@@ -468,6 +609,9 @@ def main():
 
         elif estado_app == 'TEAM_SELECT_IA':
             team_select_ia.render(datos_pokemon)
+
+        elif estado_app == 'MOVE_SELECT' and move_select:
+            move_select.render()
 
         elif estado_app == 'BATTLE' and engine and battle_screen:
             # Sincronizar estado visual cuando el jugador está eligiendo (sin mensajes)

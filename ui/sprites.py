@@ -101,10 +101,20 @@ def _url_sprite(nombre: str, es_espalda: bool) -> str:
     return f"{base}{n}.gif"
 
 
+def _scale_pixel_art(surf: pygame.Surface, target: tuple) -> pygame.Surface:
+    """Escala pixel art a `target` usando scale2x iterativo + smoothscale final.
+    scale2x dobla el tamaño preservando bordes nítidos; smoothscale solo hace
+    el ajuste fino final (mucho menor que escalar desde el tamaño original)."""
+    s = surf
+    while s.get_width() * 2 <= target[0] or s.get_height() * 2 <= target[1]:
+        s = pygame.transform.scale2x(s)
+    return pygame.transform.smoothscale(s, target)
+
+
 def _gif_a_frames(raw_bytes: bytes):
     """
     Extrae todos los frames de un GIF con Pillow a su tamaño ORIGINAL.
-    El escalado final lo hace pygame.transform.smoothscale en cargar_sprite.
+    El escalado final lo hace _scale_pixel_art en cargar_sprite.
     Retorna (list[pygame.Surface], list[int]) o (None, None) si falla.
     """
     pil_img = Image.open(io.BytesIO(raw_bytes))
@@ -172,7 +182,7 @@ def cargar_sprite(nombre: str, es_espalda: bool = False,
                 raw = f.read()
             frames, duraciones = _gif_a_frames(raw)
             if frames:
-                frames = [pygame.transform.smoothscale(f, tamaño) for f in frames]
+                frames = [_scale_pixel_art(f, tamaño) for f in frames]
                 anim = SpriteAnimado(frames, duraciones)
                 _cache[cache_key] = anim
                 return anim
